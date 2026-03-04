@@ -1,0 +1,3106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicle / Sheets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   BASE PALETTE  — light parchment (Theme 2)
+══════════════════════════════════════════════ */
+:root {
+  --bg:      #f4f0e8;
+  --bg2:     #ede8dc;
+  --bg3:     #e6dfd1;
+  --bg4:     #ddd5c4;
+  --panel:   #ffffff;
+  --panel2:  #f8f5ef;
+  --red:     #8b1a1a;
+  --red2:    #c0392b;
+  --blue:    #1a3a5c;
+  --blue2:   #2563a8;
+  --green:   #1a4a1a;
+  --green2:  #2d7a2d;
+  --purple:  #5a3080;
+  --purple2: #7c3aed;
+  --hp:      #c0392b;
+  --mp:      #1a3a5c;
+  --text:    #1a1410;
+  --text2:   #3a2e20;
+  --text3:   #7a6a50;
+  --border:  #c8b898;
+  --border2: #a89878;
+  --shadow:  rgba(26,20,10,0.09);
+  --shadow2: rgba(26,20,10,0.18);
+
+  /* ── ACCENT SYSTEM (overridden by theme classes) ── */
+  --accent:       #8b1a1a;
+  --accent2:      #c0392b;
+  --accent-dim:   #6b1414;
+  --accent-pale:  #fff5f5;
+  --accent-text:  #ffffff;
+  --accent-pill:  #c0392b;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html { font-size:14px }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+::-webkit-scrollbar { width:6px; height:6px }
+::-webkit-scrollbar-track { background: var(--bg2) }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius:3px }
+
+/* ══════════════════════════════════════════════
+   APP BAR
+══════════════════════════════════════════════ */
+.app-bar {
+  background: var(--accent);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: stretch;
+  position: sticky; top:0; z-index:200;
+  box-shadow: 0 2px 8px var(--shadow2);
+}
+.app-logo-wrap {
+  background: var(--accent-dim);
+  padding: 0 20px;
+  display: flex; align-items: center; gap:10px;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  min-height: 52px;
+}
+.app-logo-icon {
+  width:36px; height:36px;
+  border: 2px solid rgba(255,255,255,0.4); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:1rem;
+  color:rgba(255,255,255,0.95); background:rgba(0,0,0,0.15);
+  flex-shrink:0;
+}
+.app-logo {
+  font-family:'Cinzel',serif; font-size:0.85rem;
+  color:rgba(255,255,255,0.9); letter-spacing:0.15em; font-weight:700;
+}
+.app-logo span { color:rgba(255,255,255,0.5); font-weight:400 }
+.char-tabs-wrap {
+  display:flex; align-items:flex-end; gap:0;
+  padding:0 12px; overflow-x:auto;
+}
+/* id="charTabs" sits inside .char-tabs-wrap */
+.char-tabs { display:contents }
+.char-tab {
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: rgba(255,255,255,0.65);
+  font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.08em;
+  padding: 7px 16px; cursor:pointer; white-space:nowrap; transition:all 0.15s;
+  align-self: flex-end;
+}
+.char-tab:hover { color:#fff; background:rgba(0,0,0,0.28) }
+.char-tab.active { background:#fff; color:var(--accent); font-weight:600 }
+.char-tab .tab-close { margin-left:6px; color:rgba(255,255,255,0.4); font-size:0.8rem }
+.char-tab.active .tab-close { color:var(--text3) }
+.char-tab .tab-close:hover { color:var(--red2) }
+.btn-new-char {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.35); border-radius:4px;
+  color: rgba(255,255,255,0.75);
+  font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.1em;
+  padding: 6px 14px; cursor:pointer; white-space:nowrap;
+  transition:all 0.15s; align-self:center; margin-right:16px;
+}
+.btn-new-char:hover { background:rgba(255,255,255,0.12); color:#fff }
+
+/* ══════════════════════════════════════════════
+   SAVE BAR
+══════════════════════════════════════════════ */
+.save-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 5px 20px;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.save-status { font-size:0.7rem; color:var(--text3); font-family:'Cinzel',serif; letter-spacing:0.05em }
+.save-status.saved   { color:var(--green2) }
+.save-status.unsaved { color:var(--accent2) }
+.share-url-box {
+  background:var(--panel); border:1px solid var(--border); border-radius:3px;
+  color:var(--text3); font-size:0.75rem; padding:3px 8px; flex:1; min-width:0;
+  font-family:monospace; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.share-url-box:focus { outline:none; border-color:var(--accent) }
+
+/* ══════════════════════════════════════════════
+   SHEET HEADER
+══════════════════════════════════════════════ */
+.sheet-header {
+  background: var(--accent);
+  padding: 12px 20px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  border-bottom: 3px solid var(--accent-dim);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+.char-name-display {
+  font-family:'Cinzel',serif; font-size:1.55rem; font-weight:700;
+  color:#fff; letter-spacing:0.04em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3); min-width:100px;
+}
+.race-grade-badge {
+  background: var(--accent-pill); color:#fff;
+  font-family:'Cinzel',serif; font-size:0.62rem; font-weight:700; letter-spacing:0.08em;
+  border-radius:3px; padding:3px 10px;
+}
+.header-meta { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; align-items:center }
+.header-badge {
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius:4px; padding:5px 12px; text-align:center;
+}
+.hb-label {
+  font-family:'Cinzel',serif; font-size:0.48rem; letter-spacing:0.12em;
+  color:rgba(255,255,255,0.65); text-transform:uppercase; display:block;
+}
+.hb-value {
+  font-family:'Cinzel',serif; font-size:1.05rem; font-weight:700;
+  color:#fff; display:block;
+}
+.btn-levelup-top {
+  background:#fff; border:none; border-radius:4px;
+  color:var(--accent); font-family:'Cinzel',serif; font-size:0.65rem;
+  font-weight:700; letter-spacing:0.08em;
+  padding:7px 16px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.btn-levelup-top:hover { background:var(--bg); box-shadow:0 2px 6px rgba(0,0,0,0.2) }
+.btn-undo-level {
+  background:transparent; border:1px solid rgba(255,255,255,0.4); border-radius:4px;
+  color:rgba(255,255,255,0.85); font-family:'Cinzel',serif; font-size:0.62rem;
+  letter-spacing:0.06em; padding:7px 12px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.btn-undo-level:hover  { background:rgba(0,0,0,0.15) }
+.btn-undo-level:disabled { opacity:0.35; cursor:not-allowed }
+
+/* Inline color picker */
+.color-picker-wrap { display:flex; align-items:center; gap:6px }
+.color-picker-label {
+  font-family:'Cinzel',serif; font-size:0.55rem; letter-spacing:0.1em;
+  color:rgba(255,255,255,0.65);
+}
+.color-select {
+  background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.3); border-radius:4px;
+  color:#fff; font-family:'Cinzel',serif; font-size:0.58rem;
+  padding:4px 8px; cursor:pointer;
+}
+.color-select:focus { outline:none; border-color:rgba(255,255,255,0.7) }
+.color-select option { background:var(--panel); color:var(--text) }
+.color-swatches  { display:flex; gap:3px; flex-wrap:wrap; max-width:200px }
+.color-swatch    { width:16px; height:16px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform 0.15s }
+.color-swatch:hover { transform:scale(1.25) }
+.color-swatch.active { border-color:white; transform:scale(1.2) }
+
+/* ══════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════ */
+.sheet-body {
+  display:grid;
+  grid-template-columns: 280px 1fr;
+  align-items:start;
+}
+.left-panel {
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  padding:14px;
+  display:flex; flex-direction:column; gap:12px;
+  position:sticky; top:0;
+  max-height:calc(100vh - 106px);
+  overflow-y:auto; scrollbar-width:thin;
+}
+.right-panel { padding:16px; display:flex; flex-direction:column; gap:14px }
+
+/* ══════════════════════════════════════════════
+   SECTION CARDS
+══════════════════════════════════════════════ */
+.section {
+  background:var(--panel);
+  border:1px solid var(--border); border-radius:6px;
+  box-shadow:0 1px 4px var(--shadow);
+  overflow:visible;
+}
+.section > *:first-child { border-radius:6px 6px 0 0 }
+.section > *:last-child  { border-radius:0 0 6px 6px }
+.section-header {
+  background:linear-gradient(90deg, var(--bg3), var(--panel2));
+  border-bottom:1px solid var(--border);
+  padding:6px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.section-title {
+  font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:6px;
+}
+.section-title::before {
+  content:''; width:3px; height:12px;
+  background:var(--accent); border-radius:1px; display:inline-block;
+}
+.section-body { padding:10px 12px }
+
+/* ══════════════════════════════════════════════
+   IDENTITY FIELDS
+══════════════════════════════════════════════ */
+.ident-field  { display:flex; flex-direction:column; gap:2px }
+.ident-label  {
+  font-family:'Cinzel',serif; font-size:0.5rem; letter-spacing:0.15em;
+  color:var(--text3); text-transform:uppercase;
+}
+.ident-input  {
+  background:var(--bg4); border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:'Libre Baskerville',serif; font-size:0.85rem;
+  padding:3px 7px; width:100%;
+}
+.ident-input:focus { outline:none; border-color:var(--accent) }
+
+/* ══════════════════════════════════════════════
+   VITALS
+══════════════════════════════════════════════ */
+.vital-block    { display:flex; flex-direction:column; gap:3px }
+.vital-label    { font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.1em; text-transform:uppercase }
+.vital-label.hp { color:var(--hp) }
+.vital-label.mp { color:var(--mp) }
+.vital-value-row { display:flex; align-items:center; gap:5px }
+.vital-input {
+  background:var(--bg4); border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:'Cinzel',serif; font-size:1rem;
+  width:60px; text-align:center; padding:3px;
+}
+.vital-input:focus { outline:none; border-color:var(--accent) }
+.vital-sep  { color:var(--text3); font-size:0.9rem }
+.vital-max  { color:var(--text2); font-family:'Cinzel',serif; font-size:1rem; min-width:32px }
+.vital-bar-bg {
+  height:6px; background:var(--bg3); border-radius:4px;
+  border:1px solid var(--border); overflow:hidden; margin:2px 0;
+}
+.vital-bar-fill          { height:100%; border-radius:3px; transition:width 0.3s }
+.vital-bar-fill.hp       { background:linear-gradient(90deg,var(--red),#e74c3c) }
+.vital-bar-fill.mp       { background:linear-gradient(90deg,var(--blue),var(--blue2)) }
+.vital-btns  { display:flex; gap:3px; margin-top:3px; flex-wrap:wrap }
+.vital-btn {
+  background:var(--bg2); border:1px solid var(--border); color:var(--text2);
+  border-radius:3px; padding:2px 8px; cursor:pointer;
+  font-size:0.78rem; font-family:'Libre Baskerville',serif; transition:all 0.15s;
+}
+.vital-btn:hover         { border-color:var(--border2); background:var(--bg3) }
+.vital-btn.consume       { border-color:rgba(192,57,43,0.4); color:var(--red2) }
+.vital-btn.consume:hover { background:rgba(192,57,43,0.08) }
+
+/* ══════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════ */
+.stat-row {
+  display:grid; grid-template-columns:1fr 44px 40px 22px;
+  gap:4px; align-items:center; padding:4px 8px; border-radius:4px;
+  transition:background 0.1s; cursor:pointer;
+}
+.stat-row:hover     { background:var(--bg2) }
+.stat-name          { font-family:'Cinzel',serif; font-size:0.63rem; letter-spacing:0.06em; color:var(--text2); cursor:pointer; transition:color 0.15s }
+.stat-name:hover    { color:var(--accent); text-decoration:underline }
+.stat-total         {
+  font-family:'Libre Baskerville',serif; font-size:0.88rem; font-weight:700;
+  color:var(--text); text-align:center;
+  background:var(--bg3); border:1px solid var(--border); border-radius:3px; padding:2px;
+}
+.stat-mod           {
+  background:var(--accent); border:1px solid var(--accent-dim); border-radius:3px;
+  color:var(--accent-text); font-family:'Libre Baskerville',serif;
+  font-size:0.85rem; font-weight:700; text-align:center; padding:2px;
+  cursor:pointer; transition:all 0.15s; user-select:none;
+}
+.stat-mod:hover     { opacity:0.85; box-shadow:0 1px 4px var(--shadow2) }
+.stat-fp-add        {
+  background:none; border:1px solid var(--border); border-radius:3px;
+  color:var(--text3); cursor:pointer; font-size:0.85rem; line-height:1;
+  padding:1px 3px; transition:all 0.15s;
+}
+.stat-fp-add:hover  { border-color:var(--accent); color:var(--accent); background:var(--accent-pale) }
+.fp-row             {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 8px; background:var(--bg2); border-top:1px solid var(--border); margin-top:4px;
+}
+.fp-label  { font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.08em; color:var(--text3) }
+.fp-value  { font-family:'Cinzel',serif; font-size:0.95rem; color:var(--accent); font-weight:700 }
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn {
+  border:1px solid var(--border); border-radius:4px;
+  padding:6px 10px; cursor:pointer;
+  font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.08em;
+  text-transform:uppercase; transition:all 0.15s; text-align:center;
+  background:var(--panel2); color:var(--text2);
+}
+.btn:hover { border-color:var(--border2); background:var(--bg3) }
+.btn-gold   { background:var(--accent-pale); color:var(--accent); border-color:rgba(139,26,26,0.3) }
+.btn-gold:hover   { background:var(--accent); color:#fff }
+.btn-blue   { background:#eff6ff; color:var(--blue2); border-color:rgba(37,99,168,0.3) }
+.btn-blue:hover   { background:var(--blue2); color:#fff }
+.btn-green  { background:#f0faf0; color:var(--green2); border-color:rgba(45,122,45,0.3) }
+.btn-green:hover  { background:var(--green2); color:#fff }
+.btn-red    { background:#fff5f5; color:var(--red2); border-color:rgba(192,57,43,0.25) }
+.btn-red:hover    { background:var(--red2); color:#fff }
+.btn-purple { background:#f5f0ff; color:var(--purple2); border-color:rgba(90,48,128,0.3) }
+.btn-purple:hover { background:var(--purple2); color:#fff }
+.btn-sm { padding:3px 8px; font-size:0.58rem }
+.btn-xs { padding:2px 5px; font-size:0.55rem }
+
+/* ══════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════ */
+.tab-bar {
+  display:flex; gap:0;
+  border-bottom:2px solid var(--border);
+  background:var(--panel);
+  border-radius:6px 6px 0 0;
+  flex-wrap:wrap;
+  padding:0 4px;
+}
+.tab-btn {
+  background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px;
+  color:var(--text3); font-family:'Cinzel',serif; font-size:0.58rem;
+  letter-spacing:0.1em; text-transform:uppercase;
+  padding:9px 12px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.tab-btn:hover       { color:var(--text2) }
+.tab-btn.active      { color:var(--accent); border-bottom-color:var(--accent); font-weight:600 }
+.tab-pane            { display:none; padding:14px }
+.tab-pane.active     { display:block }
+
+/* ══════════════════════════════════════════════
+   SKILL ITEMS
+══════════════════════════════════════════════ */
+.skills-list { display:flex; flex-direction:column; gap:7px }
+
+/* Drag & Drop */
+.drag-handle {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; min-width:18px; color:var(--border2); cursor:grab;
+  font-size:1rem; line-height:1; margin-right:4px;
+  opacity:0.45; transition:opacity 0.15s; user-select:none; touch-action:none;
+}
+.drag-handle:hover { opacity:1; color:var(--accent) }
+.skill-item[draggable=true]:active .drag-handle,
+.weapon-card[draggable=true]:active .drag-handle,
+.stat-reward-item[draggable=true]:active .drag-handle { cursor:grabbing }
+[draggable=true].drag-over-above { border-top:2px solid var(--accent) !important }
+[draggable=true].drag-over-below { border-bottom:2px solid var(--accent) !important }
+.drag-ghost { opacity:0.35 }
+
+.skill-item {
+  background:var(--panel); border:1px solid var(--border); border-radius:5px;
+  padding:9px 12px; box-shadow:0 1px 3px var(--shadow); position:relative;
+}
+.skill-item.attack-skill   { border-left:4px solid var(--red2) }
+.skill-item.growth-skill   { border-left:4px solid var(--green2) }
+.skill-item.soulbound-skill{ border-left:4px solid var(--purple2) }
+.skill-name {
+  font-family:'Cinzel',serif; font-size:0.78rem; color:var(--text);
+  font-weight:600; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+}
+.skill-name-bracket { color:var(--text3); font-weight:400 }
+.skill-detail {
+  font-family:'Spectral',serif; font-size:0.83rem; color:var(--text2);
+  margin-top:3px; line-height:1.45; font-style:italic;
+  word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap;
+}
+.skill-row    { display:flex; align-items:center; gap:6px; margin-top:5px; flex-wrap:wrap }
+.skill-tag    { font-size:0.58rem; padding:1px 7px; border-radius:10px; font-family:'Cinzel',serif; letter-spacing:0.05em }
+.tag-attack   { background:rgba(192,57,43,0.1); color:var(--red2); border:1px solid rgba(192,57,43,0.3) }
+.tag-growth   { background:rgba(45,122,45,0.1); color:var(--green2); border:1px solid rgba(45,122,45,0.3) }
+.tag-soulbound{ background:rgba(124,58,237,0.1); color:var(--purple2); border:1px solid rgba(124,58,237,0.3) }
+.tag-unique   { background:rgba(138,101,32,0.1); color:#7a5a10; border:1px solid rgba(138,101,32,0.35) }
+.tag-equipped { background:rgba(37,99,168,0.1); color:var(--blue2); border:1px solid rgba(37,99,168,0.3) }
+.skill-actions{ display:flex; gap:4px; margin-left:auto; flex-wrap:wrap }
+.attack-btn {
+  background:var(--red2); color:#fff; border:none; border-radius:3px;
+  font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.05em;
+  padding:3px 8px; cursor:pointer; transition:opacity 0.15s;
+}
+.attack-btn:hover { opacity:0.82 }
+.to-hit-btn {
+  background:var(--blue2); color:#fff; border:none; border-radius:3px;
+  font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.05em;
+  padding:3px 8px; cursor:pointer; transition:opacity 0.15s;
+}
+.to-hit-btn:hover { opacity:0.82 }
+
+/* ══════════════════════════════════════════════
+   SYSTEM SKILLS
+══════════════════════════════════════════════ */
+.sys-skill-card {
+  background:var(--panel); border:1px solid var(--border); border-radius:5px;
+  padding:10px 12px; display:flex; gap:10px; align-items:flex-start;
+  box-shadow:0 1px 3px var(--shadow);
+}
+.sys-skill-card.selected {
+  border-color:var(--accent); border-left:4px solid var(--accent);
+  background:var(--accent-pale);
+}
+.sys-skill-checkbox { width:17px; height:17px; cursor:pointer; accent-color:var(--accent); flex-shrink:0; margin-top:2px }
+.sys-skill-info     { flex:1; min-width:0; word-wrap:break-word; overflow-wrap:break-word }
+.sys-skill-name     { font-family:'Cinzel',serif; font-size:0.8rem; color:var(--text); font-weight:600 }
+.sys-skill-desc     {
+  font-family:'Spectral',serif; font-size:0.83rem; color:var(--text2);
+  margin-top:3px; line-height:1.4; font-style:italic;
+  word-wrap:break-word; overflow-wrap:break-word; white-space:pre-wrap;
+}
+.sys-skill-tags     { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap }
+.sys-skill-rarity   { font-size:0.6rem; padding:1px 7px; border-radius:10px; font-family:'Cinzel',serif }
+.rarity-common      { background:#fafaf0; color:#7a7820; border:1px solid #b0b030 }
+.rarity-uncommon    { background:#f0faf0; color:var(--green2); border:1px solid rgba(45,122,45,0.4) }
+.rarity-rare        { background:#eff6ff; color:var(--blue2); border:1px solid rgba(37,99,168,0.4) }
+.rarity-growth      { background:#f0faf0; color:var(--green2); border:1px solid rgba(45,122,45,0.4) }
+.sys-notify {
+  background:linear-gradient(90deg, var(--accent-pale), #fffaf0);
+  border:1px solid rgba(139,26,26,0.3); border-radius:6px;
+  padding:10px 14px; font-size:0.85rem; color:var(--accent);
+  font-family:'Cinzel',serif; letter-spacing:0.04em;
+}
+
+/* ══════════════════════════════════════════════
+   RESOURCES
+══════════════════════════════════════════════ */
+.weapon-card {
+  background:var(--panel); border:1px solid var(--border); border-radius:5px;
+  padding:9px 12px; box-shadow:0 1px 3px var(--shadow); position:relative;
+}
+.weapon-card.equipped             { border-left:4px solid var(--blue2) }
+.weapon-card.attack-weapon        { border-left:4px solid var(--red2) }
+.weapon-card.equipped.attack-weapon { border-left:4px solid var(--red2) }
+.resource-row {
+  display:grid; grid-template-columns:100px 70px 1fr 28px;
+  gap:6px; align-items:center; padding:5px 6px;
+  border-bottom:1px solid var(--border); font-size:0.83rem;
+}
+.resource-row:last-child { border-bottom:none }
+.resource-input {
+  background:var(--bg4); border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:'Libre Baskerville',serif; font-size:0.83rem;
+  padding:2px 5px; width:100%;
+}
+.resource-input:focus { outline:none; border-color:var(--accent) }
+
+/* ══════════════════════════════════════════════
+   STAT REWARDS
+══════════════════════════════════════════════ */
+.stat-reward-item {
+  background:var(--panel); border:1px solid var(--border); border-radius:5px;
+  padding:9px 12px; box-shadow:0 1px 3px var(--shadow);
+}
+.stat-reward-bonuses { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px }
+.stat-reward-bonus   {
+  font-size:0.72rem; padding:1px 8px; border-radius:10px;
+  background:#f0faf0; color:var(--green2); border:1px solid rgba(45,122,45,0.35);
+  font-family:'Cinzel',serif;
+}
+
+/* ══════════════════════════════════════════════
+   SOUL BOUND
+══════════════════════════════════════════════ */
+.soulbound-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px }
+.soulbound-slot {
+  background:var(--panel2); border:1px solid var(--border); border-radius:5px;
+  padding:10px; text-align:center; min-height:55px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 1px 3px var(--shadow);
+}
+.soulbound-slot.filled { border-color:var(--purple2); background:#f9f7ff }
+.soulbound-slot.empty  { border-style:dashed; color:var(--text3); font-size:0.72rem }
+.soulbound-name        { font-family:'Cinzel',serif; font-size:0.72rem; color:var(--purple2) }
+
+/* ══════════════════════════════════════════════
+   GROWTH LOG
+══════════════════════════════════════════════ */
+.growth-event { background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--green2); border-radius:5px; padding:9px 12px; box-shadow:0 1px 3px var(--shadow) }
+.growth-event-header { display:flex; justify-content:space-between }
+.growth-event-name   { font-family:'Cinzel',serif; font-size:0.72rem; color:var(--green2) }
+.growth-event-date   { font-size:0.68rem; color:var(--text3) }
+
+/* ══════════════════════════════════════════════
+   GAME LOG
+══════════════════════════════════════════════ */
+.game-log {
+  position:fixed; bottom:0; right:0; width:340px;
+  background:var(--panel); border-top:1px solid var(--border);
+  border-left:1px solid var(--border); border-radius:6px 0 0 0;
+  z-index:300; transition:transform 0.3s;
+  box-shadow:-2px -2px 10px var(--shadow);
+}
+.game-log.collapsed { transform:translateY(calc(100% - 40px)) }
+.log-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 12px; background:var(--accent); border-radius:6px 0 0 0; cursor:pointer;
+}
+.log-title       { font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; color:#fff }
+.log-entries     { max-height:220px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px }
+.log-entry       { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.83rem; animation:fadeSlide 0.3s }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.log-entry-header  { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px }
+.log-entry-name    { font-family:'Cinzel',serif; font-size:0.68rem; color:var(--accent) }
+.log-entry-time    { font-size:0.62rem; color:var(--text3) }
+.log-entry-result  { color:var(--text2) }
+.roll-total        { font-family:'Cinzel',serif; font-size:1.1rem; color:var(--accent); font-weight:700 }
+
+/* ══════════════════════════════════════════════
+   FORMS
+══════════════════════════════════════════════ */
+.form-row      { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap }
+.form-field    { display:flex; flex-direction:column; gap:3px; flex:1; min-width:90px }
+.form-label    { font-size:0.6rem; color:var(--text3); font-family:'Cinzel',serif; letter-spacing:0.08em }
+.form-input,.form-select,.form-textarea {
+  background:var(--bg4); border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:'Libre Baskerville',serif; font-size:0.9rem;
+  padding:5px 8px; width:100%;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus { outline:none; border-color:var(--accent) }
+.form-textarea { resize:vertical; min-height:55px }
+.form-checkbox-row { display:flex; align-items:center; gap:6px }
+.form-checkbox-row input[type=checkbox] { width:14px; height:14px; cursor:pointer; accent-color:var(--accent) }
+.form-check-label  { font-size:0.8rem; color:var(--text2) }
+.attack-sub-options{ background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:8px; margin-top:6px }
+
+/* ══════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════ */
+.modal-overlay {
+  position:fixed; inset:0; z-index:400;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(26,20,10,0.5); animation:fadeIn 0.2s;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal-box {
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  padding:22px; max-width:440px; width:94%; position:relative;
+  animation:scaleIn 0.2s; max-height:90vh; overflow-y:auto;
+  box-shadow:0 8px 32px var(--shadow2);
+}
+@keyframes scaleIn { from{transform:scale(0.92);opacity:0} to{transform:scale(1);opacity:1} }
+.modal-title {
+  font-family:'Cinzel',serif; font-size:1rem; font-weight:700;
+  color:var(--accent); margin-bottom:16px; padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+.modal-close {
+  position:absolute; top:14px; right:14px; background:none; border:none;
+  color:var(--text3); cursor:pointer; font-size:1.1rem; border-radius:3px; padding:2px 5px;
+}
+.modal-close:hover { background:var(--bg3); color:var(--text) }
+.tooltip-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.88rem }
+.tooltip-row:last-child { border-bottom:none }
+.tooltip-row-label { color:var(--text3) }
+.tooltip-row-value { color:var(--text); font-weight:600 }
+
+/* ══════════════════════════════════════════════
+   NEW CHARACTER WIZARD
+══════════════════════════════════════════════ */
+.wizard-step        { display:none }
+.wizard-step.active { display:block }
+.wizard-title       { font-family:'Cinzel',serif; font-size:1.05rem; color:var(--accent); margin-bottom:6px }
+.wizard-sub         { font-size:0.83rem; color:var(--text3); margin-bottom:16px }
+.option-grid        { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px }
+.option-card {
+  background:var(--panel2); border:2px solid var(--border); border-radius:6px;
+  padding:14px; cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.option-card:hover    { border-color:var(--border2); background:var(--bg2) }
+.option-card.selected { border-color:var(--accent); background:var(--accent-pale) }
+.option-card-title    { font-family:'Cinzel',serif; font-size:0.85rem; color:var(--accent); margin-bottom:4px }
+.option-card-desc     { font-size:0.78rem; color:var(--text3) }
+.stat-init-grid       { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.stat-init-row        { display:flex; flex-direction:column; gap:3px }
+.stat-init-label      { font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.08em; color:var(--text3) }
+.stat-init-input {
+  background:var(--bg4); border:1px solid var(--border); border-radius:3px;
+  color:var(--text); font-family:'Cinzel',serif; font-size:1rem;
+  padding:5px 8px; width:100%; text-align:center;
+}
+.stat-init-input:focus { outline:none; border-color:var(--accent) }
+
+/* ══════════════════════════════════════════════
+   TEXT TOOLBAR + MISC
+══════════════════════════════════════════════ */
+.text-toolbar { display:flex; gap:4px; margin-bottom:4px }
+.toolbar-btn  { background:var(--bg3); border:1px solid var(--border); color:var(--text2); font-size:0.72rem; padding:2px 6px; cursor:pointer; border-radius:2px }
+.toolbar-btn:hover { border-color:var(--accent); color:var(--accent) }
+.divider { border:none; border-top:1px solid var(--border); margin:8px 0 }
+
+/* ══════════════════════════════════════════════
+   COLOR THEMES  — 14 options
+   Each sets: --accent  --accent2  --accent-dim
+              --accent-pale  --accent-text  --accent-pill
+══════════════════════════════════════════════ */
+.theme-crimson  { --accent:#8b1a1a; --accent2:#c0392b; --accent-dim:#6b1414; --accent-pale:#fff5f5; --accent-text:#fff; --accent-pill:#c0392b }
+.theme-gold     { --accent:#7a5a10; --accent2:#b8860b; --accent-dim:#5a4208; --accent-pale:#fffbeb; --accent-text:#fff; --accent-pill:#b8860b }
+.theme-purple   { --accent:#5a3080; --accent2:#7c3aed; --accent-dim:#3d1f5c; --accent-pale:#f5f0ff; --accent-text:#fff; --accent-pill:#7c3aed }
+.theme-lavender { --accent:#6b5b9e; --accent2:#8b7dc8; --accent-dim:#4e3f7a; --accent-pale:#f2f0ff; --accent-text:#fff; --accent-pill:#8b7dc8 }
+.theme-plum     { --accent:#7a2060; --accent2:#b03890; --accent-dim:#5c1648; --accent-pale:#fff0fa; --accent-text:#fff; --accent-pill:#b03890 }
+.theme-emerald  { --accent:#1a5c3a; --accent2:#2d8a5a; --accent-dim:#124230; --accent-pale:#f0faf5; --accent-text:#fff; --accent-pill:#2d8a5a }
+.theme-jade     { --accent:#186854; --accent2:#28987a; --accent-dim:#104e3c; --accent-pale:#f0faf8; --accent-text:#fff; --accent-pill:#28987a }
+.theme-green    { --accent:#286a18; --accent2:#3d9a28; --accent-dim:#1e4e10; --accent-pale:#f0faf0; --accent-text:#fff; --accent-pill:#3d9a28 }
+.theme-yellow   { --accent:#7a6010; --accent2:#b09020; --accent-dim:#5a4808; --accent-pale:#fffaeb; --accent-text:#fff; --accent-pill:#c0a020 }
+.theme-sunshine { --accent:#8a5010; --accent2:#c07820; --accent-dim:#6a3c08; --accent-pale:#fff8f0; --accent-text:#fff; --accent-pill:#c07820 }
+.theme-ruby     { --accent:#8b1a1a; --accent2:#c0392b; --accent-dim:#6b1414; --accent-pale:#fff5f5; --accent-text:#fff; --accent-pill:#c0392b }
+.theme-russet   { --accent:#7a3018; --accent2:#a85028; --accent-dim:#5c2210; --accent-pale:#fff8f5; --accent-text:#fff; --accent-pill:#a85028 }
+.theme-navy     { --accent:#1a3a6b; --accent2:#2563a8; --accent-dim:#122850; --accent-pale:#eff6ff; --accent-text:#fff; --accent-pill:#2563a8 }
+.theme-aqua     { --accent:#0e6080; --accent2:#0e7490; --accent-dim:#084060; --accent-pale:#f0faff; --accent-text:#fff; --accent-pill:#0e7490 }
+.theme-rainbow  { --accent:#8b1a1a; --accent2:#c0392b; --accent-dim:#6b1414; --accent-pale:#fff5f5; --accent-text:#fff; --accent-pill:#c0392b }
+
+/* Rainbow name animation */
+.theme-rainbow .char-name-display {
+  background:linear-gradient(90deg,#c00,#d80,#aa0,#080,#26c,#70c);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; animation:rainbowShift 4s linear infinite; background-size:200%;
+}
+@keyframes rainbowShift { 0%{background-position:0%} 100%{background-position:200%} }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media(max-width:700px) {
+  .app-bar { grid-template-columns:1fr }
+  .app-logo-wrap { display:none }
+  .sheet-body { grid-template-columns:1fr }
+  .left-panel { border-right:none; border-bottom:1px solid var(--border); position:static; max-height:none }
+  .game-log { width:100%; border-radius:0; border-left:none }
+  .header-meta { gap:6px }
+}
+</style>
+</head>
+<body class="theme-crimson">
+
+<!-- APP BAR -->
+<div class="app-bar">
+  <div class="app-logo-wrap">
+    <div class="app-logo-icon">C</div>
+    <div class="app-logo">Chronicle <span>/ Sheets</span></div>
+  </div>
+  <div class="char-tabs-wrap">
+    <div class="char-tabs" id="charTabs"></div>
+  </div>
+  <button class="btn-new-char" onclick="openNewCharWizard()">+ New Character</button>
+</div>
+
+<!-- SAVE BAR -->
+<div class="save-bar" id="saveBar">
+  <button class="btn btn-green btn-sm" onclick="saveAll()">💾 Save</button>
+  <span class="save-status" id="saveStatus">No saved data</span>
+  <button class="btn btn-blue btn-sm" onclick="generateShareURL()">🔗 Share URL</button>
+  <input class="share-url-box" id="shareUrlBox" readonly placeholder="Click 'Share URL' to generate..." onclick="copyShareURL()" style="display:none"/>
+  <button class="btn btn-sm" id="copyUrlBtn" onclick="copyShareURL()" style="display:none;background:var(--bg3);color:var(--text2);border-color:var(--border)">Copy</button>
+  <button class="btn btn-red btn-sm" onclick="clearSave()" style="margin-left:auto">🗑 Clear Save</button>
+</div>
+
+<!-- SHEET AREA -->
+<div id="sheetArea"></div>
+
+<!-- GAME LOG -->
+<div class="game-log collapsed" id="gameLog">
+  <div class="log-header" onclick="toggleLog()">
+    <span class="log-title">⚄ Game Log</span>
+    <span id="logToggleIcon">▲</span>
+  </div>
+  <div class="log-entries" id="logEntries">
+    <div style="color:var(--text3);font-size:0.8rem;text-align:center;padding:8px">Rolls will appear here</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modalOverlay" class="modal-overlay" style="display:none" onclick="closeModalClick(event)">
+  <div class="modal-box" id="modalBox" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modalTitle"></div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+const STAT_KEYS = ['Strength','Agility','Vitality','Wisdom','Intelligence','Personality','Perception'];
+const STAT_ABBR = {Strength:'STR',Agility:'AGI',Vitality:'VIT',Wisdom:'WIS',Intelligence:'INT',Personality:'PER',Perception:'PRC'};
+
+// Class level bonuses per level up
+const CLASS_BONUSES = {Vitality:1,Wisdom:1,Intelligence:2,Personality:1,Perception:1};
+// Free points per class level
+const CLASS_FP = 1;
+// Race level bonuses (all stats +1)
+const RACE_BONUSES_ALL = 1;
+const RACE_FP = 5;
+
+// Race grade thresholds
+const RACE_GRADES = [
+  [0,9,'Human(G)'],[10,24,'Human(F)'],[25,99,'Human(E)'],
+  [100,199,'Human(D)'],[200,349,'Human(C)'],[350,499,'Human(B)'],
+  [500,749,'Human(A)'],[750,999,'Human(S)']
+];
+
+// System Skills shared base pool — character-specific options stored in ch.systemSkillOptions
+// New characters get seeded from here; Devyn/Xeva have their own curated sets
+const SYSTEM_SKILLS = {
+  5: [
+    {id:'ss1',name:'Minor Mana Perception',rarity:'passive',desc:'Uses ¼ of active mana every day, 25ft. Growth Skill — Standard, Superior, Legendary',isGrowth:true,isAttack:false},
+    {id:'ss4',name:'Base Telepathy [Twin Set]',rarity:'uncommon',desc:'If party member is within 60ft of each other can speak mind to mind, non-verbally. Growth Skill',isGrowth:true,isAttack:false},
+    {id:'ss5',name:'Recycle',rarity:'uncommon',desc:'Breakdown of any useful components of a defeated enemy or opponent. Growth Skill',isGrowth:true,isAttack:false},
+  ]
+};
+
+// ================================================================
+// STATE
+// ================================================================
+let characters = [];
+let activeCharIdx = 0;
+let nextCharId = 10;
+let modalCloseCallback = null;
+
+function getRaceGrade(raceLevel) {
+  for (const [min,max,grade] of RACE_GRADES) {
+    if (raceLevel >= min && raceLevel <= max) return grade;
+  }
+  return 'Human(S)';
+}
+
+function calcStatTotal(stat, ch) {
+  const s = ch.stats[stat];
+  return (s.start||5) + (s.titleBonus||0) + (s.classBonus||0) + (s.raceBonus||0) + (s.freePoints||0) + (s.rewardBonus||0);
+}
+
+function getMod(stat, ch) {
+  return Math.floor(calcStatTotal(stat, ch) / 2);
+}
+
+function calcFreePoints(ch) {
+  const totalEarned = ch.totalFPEarned || 0;
+  let used = 0;
+  for (const stat of STAT_KEYS) { used += (ch.stats[stat].freePoints||0); }
+  return Math.max(0, totalEarned - used);
+}
+
+// FP earned per level: 1 per class level (up to 99), 6 per class level (100+)
+//                    + 5 per race level (up to 99), 15 per race level (100+)
+function calcTotalFPEarned(classLevel, raceLevel) {
+  let fp = 0;
+  for (let cl = 1; cl <= classLevel; cl++) fp += (cl <= 99 ? 1 : 6);
+  for (let rl = 1; rl <= raceLevel; rl++) fp += (rl <= 99 ? 5 : 15);
+  return fp;
+}
+
+function calcHP(ch) {
+  const vitality = calcStatTotal('Vitality', ch);
+  let bonus = 0;
+  // Flat HP bonuses from skills/titles
+  const allItems = [...(ch.titles||[]), ...(ch.raceSkills||[]), ...(ch.classSkills||[]), ...(ch.profSkills||[])];
+  for (const item of allItems) {
+    if (item.vitalEffect) {
+      if (item.vitalEffect.hpFlat) bonus += item.vitalEffect.hpFlat;
+      if (item.vitalEffect.hpStatBase) bonus += calcStatTotal(item.vitalEffect.hpStatBase, ch);
+      if (item.vitalEffect.hpStatMod) bonus += getMod(item.vitalEffect.hpStatMod, ch);
+    }
+  }
+  return vitality * 10 + bonus;
+}
+
+function calcMP(ch) {
+  const wisdom = calcStatTotal('Wisdom', ch);
+  const intelligence = calcStatTotal('Intelligence', ch);
+  let bonus = 0;
+  const allItems = [...(ch.titles||[]), ...(ch.raceSkills||[]), ...(ch.classSkills||[]), ...(ch.profSkills||[])];
+  for (const item of allItems) {
+    if (item.vitalEffect) {
+      if (item.vitalEffect.mpFlat) bonus += item.vitalEffect.mpFlat;
+      if (item.vitalEffect.mpStatBase) bonus += calcStatTotal(item.vitalEffect.mpStatBase, ch);
+      if (item.vitalEffect.mpStatMod) bonus += getMod(item.vitalEffect.mpStatMod, ch);
+    }
+  }
+  return (wisdom + intelligence) * 10 + bonus;
+}
+
+function calcAC(ch) {
+  // AC = sum of equipped defensive armor items' base values + stat modifiers
+  let ac = 0;
+  let hasDefensiveItem = false;
+  for (const w of (ch.weapons||[])) {
+    if (w.isEquipped && w.isDefensive) {
+      hasDefensiveItem = true;
+      ac += (w.acBase || 0);
+      if (w.acStatBase) ac += calcStatTotal(w.acStatBase, ch);
+      if (w.acStatMod) ac += getMod(w.acStatMod, ch);
+    }
+  }
+  // Also add flat AC from skills/titles
+  const allItems = [...(ch.titles||[]), ...(ch.raceSkills||[]), ...(ch.classSkills||[]), ...(ch.profSkills||[])];
+  for (const item of allItems) {
+    if (item.vitalEffect) {
+      if (item.vitalEffect.acFlat) ac += item.vitalEffect.acFlat;
+      if (item.vitalEffect.acStatBase) ac += calcStatTotal(item.vitalEffect.acStatBase, ch);
+      if (item.vitalEffect.acStatMod) ac += getMod(item.vitalEffect.acStatMod, ch);
+    }
+  }
+  return hasDefensiveItem ? ac : ch.ac; // fallback to manual AC if no defensive items set
+}
+
+function recalcVitals(ch) {
+  ch.hpMax = calcHP(ch);
+  ch.mpMax = calcMP(ch);
+  ch.ac = calcAC(ch);
+}
+
+function getSoulBoundSlots(ch) {
+  return Math.max(1, Math.floor(ch.raceLevel / 5) + 1) + (ch.extraSoulBoundSlots||0);
+}
+
+// ================================================================
+// DEFAULT CHARACTER TEMPLATE
+// ================================================================
+function makeDevyn() {
+  return {
+    id: 1,
+    name: 'Devyn',
+    race: 'Human',
+    charClass: 'Mage',
+    profession: 'N/A',
+    ac: 26,
+    classLevel: 5,
+    raceLevel: 2,
+    hpCurrent: 160, hpMax: 160,
+    mpCurrent: 430, mpMax: 430,
+    totalFPEarned: 15, // CL5 = 5 FP, RL2 = 10 FP → 15 total
+    extraSoulBoundSlots: 0,
+    levelHistory: [],
+    stats: {
+      Strength:    {start:5, titleBonus:3, classBonus:0,  raceBonus:2, freePoints:2, rewardBonus:0},
+      Agility:     {start:5, titleBonus:3, classBonus:0,  raceBonus:2, freePoints:2, rewardBonus:0},
+      Vitality:    {start:5, titleBonus:3, classBonus:5,  raceBonus:2, freePoints:1, rewardBonus:0},
+      Wisdom:      {start:9, titleBonus:3, classBonus:5,  raceBonus:2, freePoints:2, rewardBonus:0},
+      Intelligence:{start:5, titleBonus:3, classBonus:10, raceBonus:2, freePoints:2, rewardBonus:0},
+      Personality: {start:8, titleBonus:3, classBonus:5,  raceBonus:2, freePoints:3, rewardBonus:0},
+      Perception:  {start:5, titleBonus:3, classBonus:5,  raceBonus:2, freePoints:2, rewardBonus:0},
+    },
+    titles:[
+      {id:1,name:'Forerunner of the New World',detail:'+3 all Stats. Grants the Skill: Endless Tongues of the Myriad Races (Unique)',desc:'Complete the introduction and enter the tutorial as the forerunner of the New World.',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:true,statAdj:false,sbSlotBonus:false},
+      {id:2,name:'Sibling Rivalry Resolved',detail:'+2 Will Power (Additional affects unknown)',desc:'',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:false,statAdj:false,sbSlotBonus:false},
+      {id:3,name:"Briar's Bane",detail:'Briar (formerly George)',desc:'A line of thorny vines wrapped around both arms in the same placement of the former bracers. Heighting your affinity and learning the magical nature of curses.',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:false,statAdj:false,sbSlotBonus:false},
+    ],
+    raceSkills:[
+      {id:10,name:'Endless Tongues of the Myriad Races',detail:'',desc:'',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:true,statAdj:false,sbSlotBonus:false},
+    ],
+    classSkills:[
+      {id:20,name:'Mana Bolt',detail:'DMG: 1D20 + INT  |  COST 20MP  |  10MP w/ Wand',desc:'Bonus Action + Full Action',isAttack:true,attackDice:20,attackCount:1,attackStat:'Intelligence',attackCost:20,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:21,name:'Thorn Shield',detail:'COST Varies (passive)',desc:'Thorn Shield will block half the active damage for an equal amount of mana, and adds a restraining effect.\n<em>10ft Guarantee Restrained. 20ft AOE Restrained (50 Agility to Dodge)</em>',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:22,name:'Thorn Bullet',detail:'DMG: 2D20  |  COST 20MP',desc:'Initiation casting cost 20 MP - piercing damage',isAttack:true,attackDice:20,attackCount:2,attackStat:null,attackCost:20,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:23,name:'Leeching Thorn Bullet',detail:'DMG: 2D20  |  COST 30MP',desc:'On successful attack the thorn is lodged into the target, making them resistant to all healing effects.',isAttack:true,attackDice:20,attackCount:2,attackStat:null,attackCost:30,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:24,name:'Primordial Thermodynamics',detail:'',desc:'Primordial thermodynamics is a vastly...',isAttack:false,isGrowth:true,isSoulBound:false,growthHistory:[],statAdj:false,sbSlotBonus:false},
+      {id:25,name:'Mana Construct',detail:'Vary with each application',desc:'Using mana to form items. Results vary with available mana, core principles, and visualization.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:26,name:'Mana Infusion',detail:'Vary with each application',desc:'The transfer or injection of magical energy (mana) into objects or beings',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false},
+      {id:'ss1',name:'Minor Mana Perception',detail:'passive',desc:'Uses ¼ of active mana every day, 25ft. Growth Skill — Standard, Superior, Legendary',isAttack:false,isGrowth:true,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null,_sysSkillTier:5},
+    ],
+    profSkills:[],
+    statRewards:[],
+    weapons:[
+      {id:30,name:'Dagger (Inferior) x2',dmg:'1d4',dmgType:'piercing',desc:'Finesse, light, thrown (range 20/60). Decreases ritual time by 1/8.',isAttack:true,attackDice:4,attackCount:1,attackStat:'Agility',attackCost:0,attackCostType:'none',isEquipped:true,isGrowth:false,isSoulBound:false},
+      {id:31,name:'Wand (Inferior)',dmg:'—',dmgType:'',desc:'When used as a conduit, decreases mana consumption by 1/2',isAttack:false,isEquipped:true,isGrowth:false,isSoulBound:false},
+      {id:32,name:'Short Sword (Inferior)',dmg:'1d6',dmgType:'piercing',desc:'',isAttack:true,attackDice:6,attackCount:1,attackStat:null,attackCost:0,attackCostType:'none',isEquipped:false,isGrowth:false,isSoulBound:false},
+      {id:33,name:"Mages Robes (Basic)",dmg:'',dmgType:'defense',desc:'',isAttack:false,isEquipped:true,isDefensive:true,acBase:10,acStatBase:'Vitality',acStatMod:null,isGrowth:false,isSoulBound:false},
+    ],
+    general:[
+      {id:40,item:'Mana Potions (Inferior)',qty:'x5',notes:'Restore 125 MP (once per hour)'},
+      {id:41,item:'Health Potions (Inferior)',qty:'x6',notes:'Restore 125 HP (once per hour)'},
+      {id:42,item:'Wistful Vine Components',qty:'1F/3L/2V',notes:'Non-sentient'},
+      {id:43,item:'Medium Topaz Orb Spider Silk',qty:'3 oz',notes:''},
+      {id:44,item:'Black Silk',qty:'1',notes:''},
+      {id:45,item:'Full Belly Berries (Rare)',qty:'x10',notes:'Satiate appetite for 24 hours'},
+      {id:46,item:'Boar Tusk',qty:'x2',notes:''},
+      {id:47,item:'Corpse Mushroom Spore',qty:'4oz',notes:''},
+      {id:48,item:'Boar Jerky',qty:'6 Days',notes:''},
+      {id:49,item:'Boar Hide Bag',qty:'x1',notes:''},
+    ],
+    growthLog:[],
+    selectedSystemSkills:[{id:'ss1',tier:5,name:'Minor Mana Perception',rarity:'passive',desc:'Uses ¼ of active mana every day, 25ft. Growth Skill — Standard, Superior, Legendary',isGrowth:true,isAttack:false}],
+    systemSkillOptions:{5:[
+      {id:'ss1',name:'Minor Mana Perception',rarity:'passive',desc:'Uses ¼ of active mana every day, 25ft. Growth Skill — Standard, Superior, Legendary',isGrowth:true,isAttack:false},
+      {id:'ss2',name:'Bale Fire Bolt (Rare)',rarity:'rare',desc:'Deal fire damage + magical damage\nFire Dmg: 1D10 + INT\nMagical Dmg: 1D20 + INT\nCost 30MP\nUpgrade + Replacement to Mana Bolt',isAttack:true,attackDice:20,attackCount:1,attackStat:'Intelligence',attackCost:30,attackCostType:'mp',isGrowth:false},
+      {id:'ss3',name:'Light Weapon Training Minor',rarity:'common',desc:'Allows the use of daggers with Agility modifiers and the use of a short sword. Growth Skill',isGrowth:true,isAttack:false},
+      {id:'ss4',name:'Base Telepathy [Twin Set]',rarity:'uncommon',desc:'If party member is within 60ft of each other can speak mind to mind, non-verbally. Growth Skill',isGrowth:true,isAttack:false},
+      {id:'ss5',name:'Recycle',rarity:'uncommon',desc:'Breakdown of any useful components of a defeated enemy or opponent. Growth Skill',isGrowth:true,isAttack:false},
+    ]},
+    nextId: 100,
+    blessings:'',
+    theme: 'theme-crimson',
+  };
+}
+
+function makeXeva() {
+  return {
+    id: 2,
+    name: 'Xeva',
+    race: 'Human',
+    charClass: 'Mage',
+    profession: 'N/A',
+    ac: 26,
+    classLevel: 5,
+    raceLevel: 2,
+    hpCurrent: 160, hpMax: 160,
+    mpCurrent: 450, mpMax: 450,
+    totalFPEarned: 15, // CL5=5 + RL2=10
+    extraSoulBoundSlots: 0,
+    levelHistory: [],
+    stats: {
+      // start + title(3) + class + race(2) + FP = target
+      Strength:    {start:6,  titleBonus:3, classBonus:0,  raceBonus:2, freePoints:2, rewardBonus:0}, // 13
+      Agility:     {start:9,  titleBonus:3, classBonus:0,  raceBonus:2, freePoints:2, rewardBonus:0}, // 16
+      Vitality:    {start:5,  titleBonus:3, classBonus:5,  raceBonus:2, freePoints:1, rewardBonus:0}, // 16
+      Wisdom:      {start:9,  titleBonus:3, classBonus:5,  raceBonus:2, freePoints:4, rewardBonus:0}, // 23
+      Intelligence:{start:5,  titleBonus:3, classBonus:10, raceBonus:2, freePoints:2, rewardBonus:0}, // 22
+      Personality: {start:7,  titleBonus:3, classBonus:5,  raceBonus:2, freePoints:0, rewardBonus:0}, // 17
+      Perception:  {start:5,  titleBonus:3, classBonus:5,  raceBonus:2, freePoints:3, rewardBonus:0}, // 18
+    },
+    titles:[
+      {id:201,name:'Forerunner of the New World',detail:'+3 all Stats. Grants the Skill: Endless Tongues of the Myriad Races (Unique)',desc:'Complete the introduction and enter the tutorial as the forerunner of the New World.',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:true,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:202,name:'Brilliant Verdant Aegis — Armor Gauntlet',detail:'"George" of the Jungle',desc:'Increases your understanding of life, LIGHT, and nature mana.',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+    ],
+    raceSkills:[
+      {id:210,name:'Endless Tongues of the Myriad Races',detail:'',desc:'',isAttack:false,isGrowth:false,isSoulBound:false,isUnique:true,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+    ],
+    classSkills:[
+      {id:220,name:'Mana Bolt',detail:'DMG: 1D20 + INT  |  COST 20MP  |  15MP w/ Staff',desc:'Bonus Action + Full Action',isAttack:true,attackDice:20,attackCount:1,attackStat:'Intelligence',attackCost:20,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:221,name:'Petal Shield',detail:'COST Varies (passive)',desc:'Petal Shield will block half the active damage for an equal amount of mana.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:222,name:'Bane Seed',detail:'DMG: 2D20  |  COST 20MP',desc:'Attack that presents as a flurry of petals that deals piercing damage.',isAttack:true,attackDice:20,attackCount:2,attackStat:null,attackCost:20,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:223,name:'Lifebane Seed',detail:'DMG: 2D20  |  COST 35MP',desc:'Attack that presents as a flurry of petals that deals piercing damage. On a successful attack the seed will imbed itself into the target, and then sucts 1d10 of HP each round until the target is dead. Once the target is dead it burrows into the ground and uses the life force (HP) to propagate into a new crystaline Wistful Vine.\n* 15MP for a single seed for a max of 3 per round.',isAttack:true,attackDice:20,attackCount:2,attackStat:null,attackCost:35,attackCostType:'mp',isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:224,name:'Light Affinity',detail:'',desc:'Unlocking the base concepts of LIGHT it helps with the actualization of light based skills and professions. Lends itself greatly towards paths of truth and justice.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:225,name:'Brilliance (Unrefined)',detail:'',desc:'All the stats of this move will be revealed upon further understanding. Be wary, you may injure yourself.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:226,name:'Mana Infusion',detail:'Varies with each application',desc:'The transfer or injection of magical energy (mana) into objects or beings.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+      {id:227,name:'Mana Construct',detail:'Varies with each application',desc:'Using mana to form items. Results vary in conjunction with available mana, understanding of core mana principles, and visualization of simple objects.',isAttack:false,isGrowth:false,isSoulBound:false,statAdj:false,sbSlotBonus:false,vitalEffect:null},
+    ],
+    profSkills:[],
+    statRewards:[],
+    selectedSystemSkills:[], // Xeva has not yet made her Level 5 selection
+    systemSkillOptions:{5:[
+      {id:'xeva_ss1',name:'Minor Mana Perception',rarity:'passive',desc:'Uses ¼ of active mana every day, 25ft. Growth Skill — Standard, Superior, Legendary',isGrowth:true,isAttack:false},
+      {id:'xeva_ss4',name:'Base Telepathy [Twin Set]',rarity:'uncommon',desc:'If party member is within 60ft of each other can speak mind to mind, non-verbally. Growth Skill',isGrowth:true,isAttack:false},
+      {id:'xeva_ss5',name:'Recycle',rarity:'uncommon',desc:'Breakdown of any useful components of a defeated enemy or opponent. Growth Skill',isGrowth:true,isAttack:false},
+      {id:'xeva_ss6',name:"Cat's Eye (Rare)",rarity:'rare',desc:"Dark Vision (60ft), can't see in complete darkness. Growth Skill — Can grow into Superior DarkVision (120ft)",isGrowth:true,isAttack:false},
+      {id:'xeva_ss7',name:'Healing (Minor)',rarity:'common',desc:'50MP = 50HP. Growth Skill',isGrowth:true,isAttack:false},
+    ]},
+    weapons:[
+      {id:230,name:'Mage Staff (Inferior)',dmg:'1d6 bludgeoning / Versatile 1d8',dmgType:'bludgeoning',desc:'When used as a conduit, decreases mana consumption by 1/4.',isAttack:true,attackDice:6,attackCount:1,attackStat:null,attackCost:0,attackCostType:'none',isEquipped:true,isDefensive:false,isGrowth:false,isSoulBound:false},
+      {id:231,name:'Dagger (Inferior) x1',dmg:'1d4',dmgType:'piercing',desc:'Finesse, light, thrown (range 20/60).',isAttack:true,attackDice:4,attackCount:1,attackStat:'Agility',attackCost:0,attackCostType:'none',isEquipped:false,isDefensive:false,isGrowth:false,isSoulBound:false},
+      {id:232,name:'Mages Robes (Basic)',dmg:'',dmgType:'defense',desc:'',isAttack:false,isEquipped:true,isDefensive:true,acBase:10,acStatBase:'Vitality',acStatMod:null,isGrowth:false,isSoulBound:false},
+    ],
+    general:[
+      {id:240,item:'Mana Potions (Inferior)',qty:'x4',notes:'Restore 125 MP (once per hour)'},
+      {id:241,item:'Health Potions (Inferior)',qty:'x5',notes:'Restore 125 HP (once per hour)'},
+      {id:242,item:'Wistful Vine Components (non-sentient)',qty:'1F/2L',notes:'1 leaf was eaten by George'},
+      {id:243,item:'Full Belly Berries (Rare)',qty:'x6',notes:'Completely satiate appetite for one 24 hour period. Wistful Vine will eat'},
+      {id:244,item:'Boar Hide Bag',qty:'x1',notes:''},
+      {id:245,item:'Boar Scufa Humerus',qty:'x2',notes:''},
+      {id:246,item:'1 Bottle',qty:'x1',notes:''},
+      {id:247,item:'Phillip',qty:'x1',notes:''},
+      {id:248,item:'Boar Jerky',qty:'6 Days',notes:''},
+      {id:249,item:'Boar Meat',qty:'2 Days',notes:''},
+    ],
+    growthLog:[],
+    nextId: 300,
+    blessings:'',
+    theme: 'theme-navy',
+  };
+}
+
+function makeBlankChar(name, race, charClass, startStats) {
+  const stats = {};
+  for (const k of STAT_KEYS) {
+    stats[k] = {start: startStats[k]||5, titleBonus:0, classBonus:0, raceBonus:0, freePoints:0, rewardBonus:0};
+  }
+  return {
+    id: nextCharId++,
+    name, race, charClass,
+    profession:'N/A', ac:10,
+    classLevel:1, raceLevel:0,
+    hpCurrent:50, hpMax:50,
+    mpCurrent: charClass==='Mage' ? 100 : 30,
+    mpMax: charClass==='Mage' ? 100 : 30,
+    totalFPEarned: 1,
+    extraSoulBoundSlots: 0,
+    levelHistory:[],
+    stats,
+    titles:[],raceSkills:[],classSkills:[],profSkills:[],
+    statRewards:[],
+    weapons:[],general:[],growthLog:[],
+    selectedSystemSkills:[],
+    nextId: 200,
+    blessings:'',
+    theme: 'theme-navy',
+  };
+}
+
+// ================================================================
+// TOP-LEVEL RENDER
+// ================================================================
+const THEME_DOTS = {
+  'theme-crimson':'#8b1a1a','theme-gold':'#7a5a10','theme-purple':'#5a3080',
+  'theme-lavender':'#6b5b9e','theme-plum':'#7a2060','theme-emerald':'#1a5c3a',
+  'theme-jade':'#186854','theme-green':'#286a18','theme-yellow':'#7a6010',
+  'theme-sunshine':'#8a5010','theme-ruby':'#8b1a1a','theme-russet':'#7a3018',
+  'theme-navy':'#1a3a6b','theme-aqua':'#0e6080',
+  'theme-rainbow':'linear-gradient(90deg,#c00,#d80,#aa0,#080,#26c,#70c)'
+};
+
+function renderAllTabs() {
+  const ct = document.getElementById('charTabs');
+  ct.innerHTML = '';
+  characters.forEach((ch, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'char-tab' + (i===activeCharIdx?' active':'');
+    const themeColor = THEME_DOTS[ch.theme||'theme-gold'] || '#c9a84c';
+    const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${themeColor};margin-right:5px;vertical-align:middle;flex-shrink:0"></span>`;
+    btn.innerHTML = dot + escHtml(ch.name) + (characters.length>1 ? ` <span class="tab-close" onclick="removeChar(${i},event)">×</span>`:'');
+    btn.onclick = (e) => { if (e.target.classList.contains('tab-close')) return; activeCharIdx=i; renderAllTabs(); renderSheet(); };
+    ct.appendChild(btn);
+  });
+}
+
+function renderSheet() {
+  const ch = characters[activeCharIdx];
+  const area = document.getElementById('sheetArea');
+  area.innerHTML = buildSheetHTML(ch);
+  // Apply character's chosen theme
+  applyTheme(ch.theme || 'theme-crimson');
+  bindSheetEvents(ch);
+}
+
+// ================================================================
+// COLOR THEMES
+// ================================================================
+const ALL_THEMES = [
+  'theme-crimson','theme-gold','theme-purple','theme-lavender','theme-plum',
+  'theme-emerald','theme-jade','theme-green','theme-yellow',
+  'theme-sunshine','theme-ruby','theme-russet','theme-navy',
+  'theme-aqua','theme-rainbow'
+];
+
+function applyTheme(theme) {
+  const body = document.body;
+  ALL_THEMES.forEach(t => body.classList.remove(t));
+  body.classList.add(theme || 'theme-crimson');
+}
+
+function setCharTheme(theme) {
+  const ch = characters[activeCharIdx];
+  ch.theme = theme;
+  applyTheme(theme);
+  // Update active tab color swatch
+  renderAllTabs();
+  scheduleAutoSave();
+}
+
+function buildSheetHTML(ch) {
+  const fp = calcFreePoints(ch);
+  const grade = getRaceGrade(ch.raceLevel);
+  const canUndo = ch.levelHistory && ch.levelHistory.length > 0;
+  const pendingSkillTiers = getPendingSystemSkillTiers(ch);
+
+  return `
+<!-- SHEET HEADER -->
+<div class="sheet-header">
+  <div>
+    <div class="char-name-display" id="headerName">${escHtml(ch.name)}</div>
+    <div class="race-grade-badge">${escHtml(grade)}</div>
+  </div>
+  <div class="header-meta">
+    <div class="header-badge"><span class="hb-label">Race Lvl</span><span class="hb-value" id="hRaceLvl">${ch.raceLevel}</span></div>
+    <div class="header-badge"><span class="hb-label">Class Lvl</span><span class="hb-value" id="hClassLvl">${ch.classLevel}</span></div>
+    <div class="header-badge"><span class="hb-label">Class</span><span class="hb-value" id="hClass">${escHtml(ch.charClass)}</span></div>
+    <div class="header-badge"><span class="hb-label">Armor Class</span><span class="hb-value" id="hAC">${ch.ac}</span></div>
+    <button class="btn-levelup-top" onclick="levelUp()">+ Class Level Up</button>
+    <button class="btn-undo-level" onclick="undoLevelUp()" ${canUndo?'':'disabled'}>↩ Undo</button>
+    <div class="color-picker-wrap">
+      <span class="color-picker-label">Theme</span>
+      <select class="color-select" onchange="setCharTheme(this.value)" id="themeSelect">
+        <option value="theme-crimson"  ${(ch.theme||'theme-crimson')==='theme-crimson'  ?'selected':''}>🔴 Crimson (Default)</option>
+        <option value="theme-gold"     ${(ch.theme||'')==='theme-gold'     ?'selected':''}>🟡 Gold</option>
+        <option value="theme-purple"   ${(ch.theme||'')==='theme-purple'   ?'selected':''}>🟣 Purple</option>
+        <option value="theme-lavender" ${(ch.theme||'')==='theme-lavender' ?'selected':''}>💜 Lavender</option>
+        <option value="theme-plum"     ${(ch.theme||'')==='theme-plum'     ?'selected':''}>🍇 Plum</option>
+        <option value="theme-emerald"  ${(ch.theme||'')==='theme-emerald'  ?'selected':''}>💚 Emerald</option>
+        <option value="theme-jade"     ${(ch.theme||'')==='theme-jade'     ?'selected':''}>🌿 Jade</option>
+        <option value="theme-green"    ${(ch.theme||'')==='theme-green'    ?'selected':''}>🌲 Forest</option>
+        <option value="theme-yellow"   ${(ch.theme||'')==='theme-yellow'   ?'selected':''}>💛 Amber</option>
+        <option value="theme-sunshine" ${(ch.theme||'')==='theme-sunshine' ?'selected':''}>☀️ Sunshine</option>
+        <option value="theme-ruby"     ${(ch.theme||'')==='theme-ruby'     ?'selected':''}>❤️ Ruby</option>
+        <option value="theme-russet"   ${(ch.theme||'')==='theme-russet'   ?'selected':''}>🟤 Russet</option>
+        <option value="theme-navy"     ${(ch.theme||'')==='theme-navy'     ?'selected':''}>🔵 Navy</option>
+        <option value="theme-aqua"     ${(ch.theme||'')==='theme-aqua'     ?'selected':''}>🩵 Teal</option>
+        <option value="theme-rainbow"  ${(ch.theme||'')==='theme-rainbow'  ?'selected':''}>🌈 Rainbow</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-body">
+<!-- LEFT PANEL -->
+<div class="left-panel">
+
+  <!-- IDENTITY -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Identity</span></div>
+    <div class="section-body" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${identField('Name','charName',ch.name)}
+      ${identField('Race','charRace',ch.race)}
+      ${identField('Class','charClass',ch.charClass)}
+      ${identField('Profession','charProf',ch.profession)}
+      ${identField('Armor Class','charAC',ch.ac)}
+    </div>
+  </div>
+
+  <!-- VITALS -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Vitals</span></div>
+    <div class="section-body" style="display:flex;flex-direction:column;gap:8px">
+      ${vitalHTML('hp','Health Points',ch.hpCurrent,ch.hpMax)}
+      ${vitalHTML('mp','Mana Points',ch.mpCurrent,ch.mpMax)}
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Stats</span>
+      <span style="font-size:0.65rem;color:var(--text3)">Total | Mod</span>
+    </div>
+    <div class="section-body">
+      <div id="statsGrid" style="display:flex;flex-direction:column;gap:4px"></div>
+      <div class="fp-row" style="margin-top:6px">
+        <span class="fp-label">Free Points Available</span>
+        <span class="fp-value" id="freePointsDisplay">${fp}</span>
+      </div>
+      <div style="margin-top:3px;font-size:0.65rem;color:var(--text3)">Click name → breakdown. Click modifier → roll.</div>
+    </div>
+  </div>
+
+  <!-- BLESSINGS -->
+  <div class="section">
+    <div class="section-header"><span class="section-title">Blessings</span></div>
+    <div class="section-body">
+      <textarea class="form-textarea" id="blessingsText" placeholder="Enter blessings...">${escHtml(ch.blessings||'')}</textarea>
+    </div>
+  </div>
+
+</div><!-- end left -->
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  ${pendingSkillTiers.length > 0 ? `<div id="sysSkillBanner" class="sys-notify">&#9889; System Skill Selection${pendingSkillTiers.length > 1 ? 's' : ''} available! Pending: <strong>${pendingSkillTiers.map(t=>'Lvl '+t).join(', ')}</strong>. Visit the <strong>System Skills</strong> tab to choose.</div>` : '<div id="sysSkillBanner" class="sys-notify" style="display:none"></div>'}
+
+  <div class="section" style="overflow:visible">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('titles',this)">Titles</button>
+      <button class="tab-btn" onclick="switchTab('raceSkills',this)">Race Skills</button>
+      <button class="tab-btn" onclick="switchTab('classSkills',this)">Class Skills</button>
+      <button class="tab-btn" onclick="switchTab('profSkills',this)">Profession</button>
+      <button class="tab-btn" onclick="switchTab('systemSkills',this)">System Skills<span id="sysSkillTabDot" style="color:var(--accent);font-size:0.8rem;margin-left:2px;${pendingSkillTiers.length>0?'':'display:none'}">●</span></button>
+      <button class="tab-btn" onclick="switchTab('statRewards',this)">Stat Rewards</button>
+      <button class="tab-btn" onclick="switchTab('resources',this)">Resources</button>
+      <button class="tab-btn" onclick="switchTab('soulbound',this)">Soul Bound</button>
+      <button class="tab-btn" onclick="switchTab('growth',this)">Growth Log</button>
+    </div>
+
+    <!-- TITLES -->
+    <div class="tab-pane active" id="tab-titles">
+      <div class="skills-list" id="titlesList"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="openAddSkillModal('titles')">+ Add Title</button>
+    </div>
+
+    <!-- RACE SKILLS -->
+    <div class="tab-pane" id="tab-raceSkills">
+      <div class="skills-list" id="raceSkillsList"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="openAddSkillModal('raceSkills')">+ Add Race Skill</button>
+    </div>
+
+    <!-- CLASS SKILLS -->
+    <div class="tab-pane" id="tab-classSkills">
+      <div class="skills-list" id="classSkillsList"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="openAddSkillModal('classSkills')">+ Add Class Skill</button>
+    </div>
+
+    <!-- PROFESSION SKILLS -->
+    <div class="tab-pane" id="tab-profSkills">
+      <div class="skills-list" id="profSkillsList"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="openAddSkillModal('profSkills')">+ Add Profession Skill</button>
+    </div>
+
+    <!-- SYSTEM SKILLS -->
+    <div class="tab-pane" id="tab-systemSkills">
+      <div id="systemSkillsContent"></div>
+    </div>
+
+    <!-- STAT REWARDS -->
+    <div class="tab-pane" id="tab-statRewards">
+      <div class="skills-list" id="statRewardsList"></div>
+      <button class="btn btn-green btn-sm" style="margin-top:8px;width:100%" onclick="openStatRewardModal()">+ Add Stat Reward</button>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="tab-pane" id="tab-resources">
+      <div class="section-title" style="margin-bottom:8px">Weapons & Armor</div>
+      <div class="skills-list" id="weaponsList"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;width:100%;margin-bottom:16px" onclick="openAddWeaponModal()">+ Add Weapon / Armor</button>
+      <hr class="divider"/>
+      <div class="section-title" style="margin:8px 0">General Resources</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem" id="generalTable">
+        <thead><tr>
+          <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Item</th>
+          <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Qty</th>
+          <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Notes</th>
+          <th style="padding:4px 5px;border-bottom:1px solid var(--border)"></th>
+        </tr></thead>
+        <tbody id="generalTbody"></tbody>
+      </table>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;width:100%" onclick="addGeneralRow()">+ Add Item</button>
+    </div>
+
+    <!-- SOUL BOUND -->
+    <div class="tab-pane" id="tab-soulbound">
+      <div style="color:var(--text3);font-size:0.8rem;margin-bottom:8px">
+        Soul Bound slots: <span id="sbSlotCount" style="color:var(--gold);font-family:'Cinzel',serif">${getSoulBoundSlots(ch)}</span>
+        <span style="color:var(--text3)"> (1 per 5 Race Levels + extras from skills)</span>
+      </div>
+      <div class="soulbound-grid" id="soulboundGrid"></div>
+    </div>
+
+    <!-- GROWTH LOG -->
+    <div class="tab-pane" id="tab-growth">
+      <div class="skills-list" id="growthHistory"></div>
+    </div>
+
+  </div><!-- end tabs section -->
+</div><!-- end right -->
+</div><!-- end body -->
+  `;
+}
+
+function identField(label, id, val) {
+  return `<div>
+    <div style="color:var(--text3);font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:0.1em;margin-bottom:1px">${label.toUpperCase()}</div>
+    <input class="form-input" id="${id}" value="${escHtml(String(val))}" style="font-size:0.85rem;padding:3px 7px" oninput="syncIdentity('${id}')"/>
+  </div>`;
+}
+
+function vitalHTML(type, label, cur, max) {
+  const pct = Math.min(100, (cur/max)*100);
+  return `<div class="vital-block">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="vital-label ${type}">${label}</span>
+      <div class="vital-value-row">
+        <input class="vital-input" id="${type}Current" type="number" value="${cur}" min="0" oninput="updateBar('${type}')"/>
+        <span class="vital-sep">/</span>
+        <span class="vital-max" id="${type}Max">${max}</span>
+      </div>
+    </div>
+    <div class="vital-bar-bg"><div class="vital-bar-fill ${type}" id="${type}Bar" style="width:${pct}%"></div></div>
+    <div class="vital-btns">
+      <input class="form-input" id="${type}Change" type="number" placeholder="amount" style="width:70px;font-size:0.78rem;padding:2px 5px"/>
+      <button class="vital-btn" onclick="changeVital('${type}','heal')">${type==='hp'?'Heal':'Restore'}</button>
+      <button class="vital-btn consume" onclick="changeVital('${type}','damage')">${type==='hp'?'Damage':'Spend'}</button>
+    </div>
+  </div>`;
+}
+
+function bindSheetEvents(ch) {
+  renderStats();
+  renderAllSkillLists();
+  renderWeapons();
+  renderGeneral();
+  renderSoulBound();
+  renderSystemSkills();
+  renderStatRewards();
+  renderGrowthLog();
+}
+
+// ================================================================
+// IDENTITY SYNC
+// ================================================================
+function syncIdentity(fieldId) {
+  const ch = characters[activeCharIdx];
+  const val = document.getElementById(fieldId).value;
+  if (fieldId==='charName') { ch.name=val; document.getElementById('headerName').textContent=val; renderAllTabs(); }
+  else if (fieldId==='charRace') { ch.race=val; }
+  else if (fieldId==='charClass') { ch.charClass=val; document.getElementById('hClass').textContent=val; }
+  else if (fieldId==='charProf') { ch.profession=val; }
+  else if (fieldId==='charAC') { ch.ac=parseInt(val)||0; document.getElementById('hAC').textContent=ch.ac; }
+}
+
+// ================================================================
+// STATS
+// ================================================================
+function renderStats() {
+  const ch = characters[activeCharIdx];
+  const fp = calcFreePoints(ch);
+  const grid = document.getElementById('statsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  STAT_KEYS.forEach(stat => {
+    const total = calcStatTotal(stat, ch);
+    const mod = getMod(stat, ch);
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <span class="stat-name" onclick="showStatBreakdown('${stat}')">${stat}</span>
+      <div class="stat-total">${total}</div>
+      <div class="stat-mod" title="Roll 1D100 + ${mod>=0?'+'+mod:mod}" onclick="rollStat('${stat}')">${mod>=0?'+'+mod:mod}</div>
+      <button class="stat-fp-add" title="Spend 1 Free Point on ${stat}" onclick="spendFP('${stat}')" ${fp<=0?'disabled style="opacity:0.3"':''}>+</button>
+    `;
+    grid.appendChild(row);
+  });
+  const fpEl = document.getElementById('freePointsDisplay');
+  if (fpEl) fpEl.textContent = fp;
+}
+
+function showStatBreakdown(stat) {
+  const ch = characters[activeCharIdx];
+  const s = ch.stats[stat];
+  const fp = calcFreePoints(ch);
+  const total = calcStatTotal(stat, ch);
+  const mod = getMod(stat, ch);
+  openModal(`${stat} Breakdown`, `
+    <div class="tooltip-row"><span class="tooltip-row-label">Start Value</span><span class="tooltip-row-value">${s.start||5}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Title Bonus</span><span class="tooltip-row-value">+${s.titleBonus||0}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Class Bonus</span><span class="tooltip-row-value">+${s.classBonus||0}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Race Bonus</span><span class="tooltip-row-value">+${s.raceBonus||0}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Reward Bonus</span><span class="tooltip-row-value">+${s.rewardBonus||0}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Free Points Spent</span>
+      <span class="tooltip-row-value" style="display:flex;align-items:center;gap:6px">
+        <button class="btn btn-red btn-xs" onclick="adjFP('${stat}',-1)">−</button>
+        ${s.freePoints||0}
+        <button class="btn btn-green btn-xs" onclick="adjFP('${stat}',1)" ${fp<=0?'disabled style="opacity:0.4"':''}>+</button>
+      </span>
+    </div>
+    <div class="tooltip-row" style="font-size:1rem"><span class="tooltip-row-label">Total</span><span class="tooltip-row-value" style="color:var(--gold2)">${total}</span></div>
+    <div class="tooltip-row"><span class="tooltip-row-label">Modifier (÷2)</span><span class="tooltip-row-value">${mod>=0?'+'+mod:mod}</span></div>
+    <div style="margin-top:10px;font-size:0.72rem;color:var(--text3)">Available Free Points: ${fp}</div>
+    <button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="rollStat('${stat}');closeModal()">Roll 1D100 ${mod>=0?'+'+mod:mod}</button>
+  `);
+}
+
+function adjFP(stat, delta) {
+  const ch = characters[activeCharIdx];
+  const s = ch.stats[stat];
+  const fp = calcFreePoints(ch);
+  if (delta>0 && fp<=0) return;
+  if (delta<0 && (s.freePoints||0)<=0) return;
+  s.freePoints = (s.freePoints||0) + delta;
+  renderStats();
+  showStatBreakdown(stat); // re-render breakdown
+  scheduleAutoSave();
+}
+
+function spendFP(stat) {
+  const ch = characters[activeCharIdx];
+  const fp = calcFreePoints(ch);
+  if (fp<=0) return;
+  ch.stats[stat].freePoints = (ch.stats[stat].freePoints||0)+1;
+  renderStats();
+}
+
+function rollStat(stat) {
+  const ch = characters[activeCharIdx];
+  const mod = getMod(stat, ch);
+  const roll = Math.ceil(Math.random()*100);
+  const total = roll+mod;
+  addLog(`${stat} Check`, `Rolled ${roll} ${mod>=0?'+'+mod:mod} =`, total, roll);
+}
+
+// ================================================================
+// VITALS
+// ================================================================
+function updateBar(type) {
+  const ch = characters[activeCharIdx];
+  const cur = parseInt(document.getElementById(type+'Current').value)||0;
+  const max = type==='hp'?ch.hpMax:ch.mpMax;
+  if (type==='hp') ch.hpCurrent=cur; else ch.mpCurrent=cur;
+  const bar = document.getElementById(type+'Bar');
+  if (bar) bar.style.width = Math.min(100,(cur/max)*100)+'%';
+}
+
+function changeVital(type, action) {
+  const ch = characters[activeCharIdx];
+  const amt = Math.abs(parseInt(document.getElementById(type+'Change').value)||0);
+  if (!amt) return;
+  const cur = type==='hp'?ch.hpCurrent:ch.mpCurrent;
+  const max = type==='hp'?ch.hpMax:ch.mpMax;
+  const newVal = action==='heal'?Math.min(max,cur+amt):Math.max(0,cur-amt);
+  if (type==='hp') ch.hpCurrent=newVal; else ch.mpCurrent=newVal;
+  document.getElementById(type+'Current').value=newVal;
+  document.getElementById(type+'Change').value='';
+  updateBar(type);
+}
+
+// ================================================================
+// LEVEL UP / UNDO
+// ================================================================
+// Returns array of all tiers that are unlocked (classLevel >= tier) but have no selection yet
+function getPendingSystemSkillTiers(ch) {
+  const pending = [];
+  const maxTier = Math.min(Math.floor(ch.classLevel / 5) * 5, 100);
+  for (let t = 5; t <= maxTier; t += 5) {
+    if (!ch.selectedSystemSkills.find(s => s.tier === t)) {
+      pending.push(t);
+    }
+  }
+  return pending;
+}
+
+
+function levelUp() {
+  const ch = characters[activeCharIdx];
+  // Save snapshot for undo
+  const snap = JSON.parse(JSON.stringify({
+    classLevel:ch.classLevel, raceLevel:ch.raceLevel,
+    stats: JSON.parse(JSON.stringify(ch.stats)),
+    totalFPEarned:ch.totalFPEarned,
+    hpMax:ch.hpMax, mpMax:ch.mpMax, ac:ch.ac,
+  }));
+  ch.levelHistory.push(snap);
+
+  ch.classLevel++;
+  // Apply class bonuses to classBonus component
+  for (const [stat, bonus] of Object.entries(CLASS_BONUSES)) {
+    ch.stats[stat].classBonus = (ch.stats[stat].classBonus||0)+bonus;
+  }
+
+  // Race level every 2 class levels
+  if (ch.classLevel%2===0) {
+    ch.raceLevel++;
+    for (const stat of STAT_KEYS) {
+      ch.stats[stat].raceBonus = (ch.stats[stat].raceBonus||0)+RACE_BONUSES_ALL;
+    }
+    renderSoulBound();
+  }
+
+  // Recalculate total FP earned using scaling formula
+  ch.totalFPEarned = calcTotalFPEarned(ch.classLevel, ch.raceLevel);
+
+  // Recalc HP/MP/AC using formulas
+  recalcVitals(ch);
+
+  document.getElementById('hClassLvl').textContent = ch.classLevel;
+  document.getElementById('hRaceLvl').textContent = ch.raceLevel;
+
+  addLog('Level Up!', `Class Lvl ${ch.classLevel}`, ch.classLevel, ch.classLevel);
+  renderSheet();
+  scheduleAutoSave();
+
+  // Check for system skill notification
+  const pendingTiers = getPendingSystemSkillTiers(ch);
+  if (pendingTiers.length > 0) {
+    const newest = pendingTiers[pendingTiers.length - 1];
+    // At level 10+, show modal prompting player to add their 5 skill options
+    // At level 5, options are pre-loaded (SYSTEM_SKILLS[5]) so just notify
+    if (newest >= 10) {
+      setTimeout(() => {
+        openModal(`⚡ System Skill Unlocked — Level ${newest}`, `
+          <div style="text-align:center;margin-bottom:16px">
+            <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--accent2);margin-bottom:8px">Class Level ${newest} Reached!</div>
+            <div style="color:var(--text2);font-size:0.88rem;line-height:1.6">You may now select <strong>1 System Skill</strong> from your available options.<br/>
+            Add up to 5 skill options for this tier, then choose one.</div>
+          </div>
+          <div style="background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:16px;font-size:0.82rem;color:var(--text3)">
+            ℹ️ System Skill options for each level are unique to each player and session. Add the 5 options provided by your game master, then pick one.
+          </div>
+          <div style="display:flex;gap:8px">
+              <button class="btn btn-gold" style="flex:2" onclick="closeModal();switchTab('systemSkills',document.querySelector('[onclick*=systemSkills]'));setTimeout(()=>openAddSystemSkillOption(${newest}),150)">
+                + Add Skill Options for Level ${newest}
+              </button>
+            <button class="btn" style="flex:1" onclick="closeModal()">Later</button>
+          </div>
+        `);
+      }, 200);
+    } else {
+      addLog('System Skill Available!', `Choose your Lvl ${newest} skill in the System Skills tab`, newest, newest);
+    }
+  }
+}
+
+function undoLevelUp() {
+  const ch = characters[activeCharIdx];
+  if (!ch.levelHistory || ch.levelHistory.length===0) return;
+  const snap = ch.levelHistory.pop();
+  ch.classLevel = snap.classLevel;
+  ch.raceLevel = snap.raceLevel;
+  ch.stats = snap.stats;
+  ch.totalFPEarned = snap.totalFPEarned;
+  ch.hpMax = snap.hpMax;
+  ch.mpMax = snap.mpMax;
+  if (snap.ac !== undefined) ch.ac = snap.ac;
+  addLog('Level Up Undone', `Reverted to Class Lvl ${ch.classLevel}`, ch.classLevel, ch.classLevel);
+  renderSheet();
+  scheduleAutoSave();
+}
+
+// ================================================================
+// SKILL RENDERING
+// ================================================================
+function renderAllSkillLists() {
+  renderSkillList('titles');
+  renderSkillList('raceSkills');
+  renderSkillList('classSkills');
+  renderSkillList('profSkills');
+}
+
+function renderSkillList(listKey) {
+  const ch = characters[activeCharIdx];
+  const el = document.getElementById(listKey+'List');
+  if (!el) return;
+  el.innerHTML = '';
+  const items = ch[listKey];
+  if (!items||items.length===0) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:0.83rem;padding:4px">None added yet.</div>';
+    return;
+  }
+  items.forEach(skill => el.appendChild(buildSkillCard(skill, listKey)));
+  makeDraggable(el, listKey, function() { renderSkillList(listKey); });
+}
+
+function buildSkillCard(skill, listKey) {
+  const div = document.createElement('div');
+  div.className='skill-item'+(skill.isAttack?' attack-skill':'')+(skill.isGrowth?' growth-skill':'')+(skill.isSoulBound?' soulbound-skill':'');
+  const tags = [];
+  if (skill.isAttack) tags.push('<span class="skill-tag tag-attack">Attack</span>');
+  if (skill.isGrowth) tags.push('<span class="skill-tag tag-growth">Growth</span>');
+  if (skill.isSoulBound) tags.push('<span class="skill-tag tag-soulbound">Soul Bound</span>');
+  if (skill.isUnique) tags.push('<span class="skill-tag tag-unique">Unique</span>');
+  if (skill.statAdj && skill.statBonuses) {
+    const bonusStrs = Object.entries(skill.statBonuses).filter(([,v])=>v>0).map(([k,v])=>`+${v} ${STAT_ABBR[k]||k}`);
+    if (bonusStrs.length) tags.push(`<span class="skill-tag" style="background:#1a2a10;color:var(--green2);border:1px solid var(--green)">${bonusStrs.join(' ')}</span>`);
+  }
+  if (skill.sbSlotBonus) tags.push('<span class="skill-tag tag-soulbound">+SB Slot</span>');
+  if (skill._sysSkillTier) tags.push('<span class="skill-tag" style="background:var(--theme-bg);color:var(--accent);border:1px solid var(--accent-dim);font-size:0.58rem">Sys Lvl ' + skill._sysSkillTier + '</span>');
+
+  // Use single-quote wrapping for string IDs so onclick attrs don't break (JSON.stringify adds double quotes which close the HTML attr)
+  const safeId = (typeof skill.id === 'string') ? ("'" + skill.id + "'") : skill.id;
+  const attackBtns = skill.isAttack ? `
+    <button class="to-hit-btn" onclick="rollToHit('${escHtml(skill.name)}')">To Hit</button>
+    <button class="attack-btn" onclick="rollSkillAttack(${safeId},'${listKey}')">Roll DMG</button>` : '';
+  const growBtn = skill.isGrowth ? `<button class="btn btn-green btn-xs" onclick="growSkill(${safeId},'${listKey}')">Grow</button>` : '';
+
+  div.draggable = true;
+  div.innerHTML = `
+    <div class="skill-row">
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <span class="skill-name" ${skill.isAttack?`onclick="rollSkillAttack(${safeId},'${listKey}')" style="cursor:pointer"`:''}><span class="skill-name-bracket">[</span>${escHtml(skill.name)}<span class="skill-name-bracket">]</span></span>
+      <div class="skill-actions">${attackBtns}${growBtn}
+        <button class="btn btn-sm" style="background:var(--bg4);color:var(--text3);border-color:var(--border)" onclick="editSkill(${safeId},'${listKey}')">✎</button>
+        <button class="btn btn-red btn-xs" onclick="removeSkill(${safeId},'${listKey}')">✕</button>
+      </div>
+    </div>
+    ${skill.detail?`<div class="skill-detail"><strong>${skill.detail}</strong></div>`:''}
+    ${skill.desc?`<div class="skill-detail" style="margin-top:2px">${skill.desc}</div>`:''}
+    ${tags.length?`<div class="skill-row" style="margin-top:4px">${tags.join(' ')}</div>`:''}
+  `;
+  return div;
+}
+
+// ================================================================
+// ADD / EDIT SKILL MODAL
+// ================================================================
+let _addSkillTarget = null, _editSkillId = null;
+
+function openAddSkillModal(listKey, skillId) {
+  _addSkillTarget = listKey;
+  _editSkillId = skillId||null;
+  const ch = characters[activeCharIdx];
+  const ex = skillId ? ch[listKey].find(s=>s.id===skillId) : null;
+  const labels = {titles:'Title',raceSkills:'Race Skill',classSkills:'Class Skill',profSkills:'Profession Skill'};
+  openModal((skillId?'Edit':'Add')+' '+labels[listKey], buildSkillForm(ex));
+  if (ex) {
+    setChecked('asIsAttack', ex.isAttack);
+    setChecked('asIsGrowth', ex.isGrowth);
+    setChecked('asIsSoulBound', ex.isSoulBound);
+    setChecked('asStatAdj', ex.statAdj);
+    setChecked('asSbSlot', ex.sbSlotBonus);
+    setChecked('asVitalEffect', !!ex.vitalEffect);
+    toggleAttackOpts();
+    toggleStatAdj();
+    toggleVitalEffect();
+    if (ex.isAttack) {
+      setVal('asAtkDice', ex.attackDice||20);
+      setVal('asAtkCount', ex.attackCount||1);
+      setVal('asAtkStat', ex.attackStat||'');
+      setVal('asAtkCost', ex.attackCost||0);
+      setVal('asAtkCostType', ex.attackCostType||'mp');
+    }
+    if (ex.statAdj && ex.statBonuses) {
+      for (const [k,v] of Object.entries(ex.statBonuses)) {
+        const el = document.getElementById('statAdj_'+k);
+        if (el) el.value=v;
+      }
+    }
+    if (ex.vitalEffect) {
+      for (const type of ['hp','mp','ac']) {
+        const ve = ex.vitalEffect;
+        setVal(`ve_${type}_flat`, ve[type+'Flat']||0);
+        setVal(`ve_${type}_statBase`, ve[type+'StatBase']||'');
+        setVal(`ve_${type}_statMod`, ve[type+'StatMod']||'');
+      }
+    }
+  }
+}
+
+function buildSkillForm(ex) {
+  const statCheckboxes = STAT_KEYS.map(k=>`
+    <div style="display:flex;align-items:center;gap:4px;min-width:90px">
+      <label style="font-size:0.75rem;color:var(--text2)">${k.slice(0,3)}</label>
+      <input class="form-input" id="statAdj_${k}" type="number" value="${ex?.statBonuses?.[k]||0}" style="width:50px;font-size:0.8rem" min="0"/>
+    </div>`).join('');
+  return `
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Name (shown in brackets)</label>
+        <input class="form-input" id="asName" value="${escHtml(ex?.name||'')}" placeholder="Skill name"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Detail / Cost Line</label>
+        <input class="form-input" id="asDetail" value="${escHtml(ex?.detail||'')}" placeholder="DMG: 1D20 + INT | COST 20MP"/>
+      </div>
+    </div>
+    <div class="text-toolbar">
+      <button class="toolbar-btn" onclick="wrapTA('asDesc','<strong>','</strong>')"><b>B</b></button>
+      <button class="toolbar-btn" onclick="wrapTA('asDesc','<em>','</em>')"><i>I</i></button>
+    </div>
+    <div class="form-field" style="margin-bottom:8px">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="asDesc">${ex?.desc||''}</textarea>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+      <div class="form-checkbox-row"><input type="checkbox" id="asIsAttack" onchange="toggleAttackOpts()"/><label class="form-check-label" for="asIsAttack">Attack</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="asIsGrowth"/><label class="form-check-label" for="asIsGrowth">Growth Type</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="asIsSoulBound"/><label class="form-check-label" for="asIsSoulBound">Soul Bound</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="asStatAdj" onchange="toggleStatAdj()"/><label class="form-check-label" for="asStatAdj">Stat Adjustment</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="asSbSlot"/><label class="form-check-label" for="asSbSlot">+1 Soul Bound Slot</label></div>
+    </div>
+    <div id="statAdjOpts" style="display:none;background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:8px;margin-bottom:8px">
+      <div class="form-label" style="margin-bottom:6px">Stat Bonuses from this Skill</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${statCheckboxes}</div>
+    </div>
+    <div class="form-checkbox-row" style="margin-bottom:6px">
+      <input type="checkbox" id="asVitalEffect" onchange="toggleVitalEffect()"/>
+      <label class="form-check-label" for="asVitalEffect">Affects HP / MP / AC</label>
+    </div>
+    <div id="vitalEffectOpts" style="display:none;background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px">
+      <div style="font-size:0.72rem;color:var(--text3);margin-bottom:8px">Configure how this skill modifies HP, MP, or AC. Use flat amounts or add a stat's base value or modifier.</div>
+      ${buildVitalEffectInputs(null, 'hp')}
+      ${buildVitalEffectInputs(null, 'mp')}
+      ${buildVitalEffectInputs(null, 'ac')}
+    </div>
+    <div id="attackSubOpts" style="display:none" class="attack-sub-options">
+      <div class="form-row">
+        <div class="form-field"><label class="form-label"># Dice</label><input class="form-input" id="asAtkCount" type="number" value="1" min="1"/></div>
+        <div class="form-field"><label class="form-label">Dice Type</label>
+          <select class="form-select" id="asAtkDice">
+            <option value="4">D4</option><option value="6">D6</option><option value="8">D8</option>
+            <option value="10">D10</option><option value="12">D12</option><option value="20" selected>D20</option><option value="100">D100</option>
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">Stat Modifier</label>
+          <select class="form-select" id="asAtkStat">
+            <option value="">None</option>
+            ${STAT_KEYS.map(k=>`<option value="${k}">${k} (${STAT_ABBR[k]})</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Cost Amount</label><input class="form-input" id="asAtkCost" type="number" value="0" min="0"/></div>
+        <div class="form-field"><label class="form-label">Cost Type</label>
+          <select class="form-select" id="asAtkCostType">
+            <option value="mp">MP</option><option value="hp">HP</option><option value="none">None</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-top:6px" onclick="saveSkill()">${_editSkillId?'Save Changes':'Add Skill'}</button>
+  `;
+}
+
+function toggleAttackOpts() {
+  const el = document.getElementById('attackSubOpts');
+  if (el) el.style.display = isChecked('asIsAttack') ? 'block' : 'none';
+}
+function toggleStatAdj() {
+  const el = document.getElementById('statAdjOpts');
+  if (el) el.style.display = isChecked('asStatAdj') ? 'flex' : 'none';
+}
+function toggleVitalEffect() {
+  const el = document.getElementById('vitalEffectOpts');
+  if (el) el.style.display = isChecked('asVitalEffect') ? 'block' : 'none';
+}
+
+function buildVitalEffectInputs(ve, type) {
+  const label = type.toUpperCase();
+  const statOpts = STAT_KEYS.map(k=>`<option value="${k}">${k}</option>`).join('');
+  return `
+    <div style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px">
+      <div class="form-label" style="color:var(--${type==='hp'?'hp':type==='mp'?'mp':'gold'});margin-bottom:4px">${label}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <div class="form-field" style="min-width:70px;max-width:80px">
+          <label class="form-label">Flat +/-</label>
+          <input class="form-input" id="ve_${type}_flat" type="number" value="${ve?.[type+'Flat']||0}" style="text-align:center"/>
+        </div>
+        <div class="form-field" style="min-width:110px">
+          <label class="form-label">+ Stat Base</label>
+          <select class="form-select" id="ve_${type}_statBase">
+            <option value="">None</option>${STAT_KEYS.map(k=>`<option value="${k}" ${ve?.[type+'StatBase']===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field" style="min-width:110px">
+          <label class="form-label">+ Stat Modifier</label>
+          <select class="form-select" id="ve_${type}_statMod">
+            <option value="">None</option>${STAT_KEYS.map(k=>`<option value="${k}" ${ve?.[type+'StatMod']===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`;
+}
+
+function saveSkill() {
+  const ch = characters[activeCharIdx];
+  const name = getVal('asName').trim();
+  if (!name) { alert('Please enter a skill name.'); return; }
+  const isAttack = isChecked('asIsAttack');
+  const statAdj = isChecked('asStatAdj');
+  const sbSlotBonus = isChecked('asSbSlot');
+  const hasVitalEffect = isChecked('asVitalEffect');
+  let statBonuses = {};
+  if (statAdj) {
+    for (const k of STAT_KEYS) {
+      const v = parseInt(document.getElementById('statAdj_'+k)?.value)||0;
+      if (v) statBonuses[k]=v;
+    }
+  }
+  let vitalEffect = null;
+  if (hasVitalEffect) {
+    vitalEffect = {};
+    for (const type of ['hp','mp','ac']) {
+      const flat = parseInt(document.getElementById(`ve_${type}_flat`)?.value)||0;
+      const statBase = document.getElementById(`ve_${type}_statBase`)?.value||'';
+      const statMod = document.getElementById(`ve_${type}_statMod`)?.value||'';
+      if (flat) vitalEffect[type+'Flat'] = flat;
+      if (statBase) vitalEffect[type+'StatBase'] = statBase;
+      if (statMod) vitalEffect[type+'StatMod'] = statMod;
+    }
+  }
+  const skill = {
+    id: _editSkillId || ch.nextId++,
+    name, detail:getVal('asDetail').trim(),
+    desc: getVal('asDesc').trim(),
+    isAttack, isGrowth:isChecked('asIsGrowth'),
+    isSoulBound:isChecked('asIsSoulBound'),
+    isUnique:false, statAdj, statBonuses, sbSlotBonus,
+    vitalEffect,
+    growthHistory:[],
+  };
+  // Preserve _sysSkillTier if editing an existing class skill that came from a system skill
+  if (_editSkillId) {
+    const prevSkill = ch[_addSkillTarget] ? ch[_addSkillTarget].find(function(s) { return s.id === _editSkillId; }) : null;
+    if (prevSkill && prevSkill._sysSkillTier) skill._sysSkillTier = prevSkill._sysSkillTier;
+    if (prevSkill && prevSkill.growthHistory) skill.growthHistory = prevSkill.growthHistory;
+  }
+  if (isAttack) {
+    skill.attackDice=parseInt(getVal('asAtkDice'))||20;
+    skill.attackCount=parseInt(getVal('asAtkCount'))||1;
+    skill.attackStat=getVal('asAtkStat')||null;
+    skill.attackCost=parseInt(getVal('asAtkCost'))||0;
+    skill.attackCostType=getVal('asAtkCostType');
+  }
+  // Apply stat bonuses to titleBonus if it's a title
+  if (statAdj && Object.keys(statBonuses).length) {
+    applySkillStatBonuses(skill, _editSkillId ? 'edit' : 'add', _addSkillTarget);
+  }
+  if (_editSkillId) {
+    const idx = ch[_addSkillTarget].findIndex(s=>s.id===_editSkillId);
+    if (idx>=0) ch[_addSkillTarget][idx]=skill;
+
+    // If this is a system-skill-originated class skill, sync the edit back to systemSkillOptions
+    // so the System Skills tab shows the updated data
+    if (_addSkillTarget === 'classSkills') {
+      const allSSO = ch.systemSkillOptions || {};
+      for (const t of Object.keys(allSSO)) {
+        const ssoIdx = allSSO[t].findIndex(function(s) { return s.id === _editSkillId; });
+        if (ssoIdx !== -1) {
+          // Update the source option with the new name/desc/rarity/attack data
+          const orig = allSSO[t][ssoIdx];
+          allSSO[t][ssoIdx] = Object.assign({}, orig, {
+            name: skill.name, desc: skill.desc, detail: skill.detail,
+            isAttack: skill.isAttack, isGrowth: skill.isGrowth,
+            rarity: skill.detail || orig.rarity,
+            attackDice: skill.attackDice, attackCount: skill.attackCount,
+            attackStat: skill.attackStat, attackCost: skill.attackCost,
+            attackCostType: skill.attackCostType,
+          });
+          // Also update the selectedSystemSkills record
+          const selIdx = ch.selectedSystemSkills.findIndex(function(s) { return s.id === _editSkillId; });
+          if (selIdx !== -1) {
+            ch.selectedSystemSkills[selIdx] = Object.assign({}, ch.selectedSystemSkills[selIdx], {
+              name: skill.name, desc: skill.desc
+            });
+          }
+          break;
+        }
+      }
+    }
+  } else {
+    ch[_addSkillTarget].push(skill);
+  }
+  // Soul Bound slot bonus
+  if (sbSlotBonus && !_editSkillId) ch.extraSoulBoundSlots = (ch.extraSoulBoundSlots||0)+1;
+  // Recalc vitals in case this skill affects HP/MP/AC
+  recalcVitals(ch);
+  // Update header badges
+  const acEl=document.getElementById('hAC'); if(acEl) acEl.textContent=ch.ac;
+  renderSkillList(_addSkillTarget);
+  renderSoulBound();
+  // If editing a class skill that came from a system skill, refresh System Skills tab too
+  if (_editSkillId && _addSkillTarget === 'classSkills') {
+    renderSystemSkills();
+  }
+  closeModal();
+  scheduleAutoSave();
+}
+
+function applySkillStatBonuses(skill, mode, listKey) {
+  const ch = characters[activeCharIdx];
+  for (const [stat, bonus] of Object.entries(skill.statBonuses||{})) {
+    if (listKey==='titles') ch.stats[stat].titleBonus = (ch.stats[stat].titleBonus||0)+bonus;
+    else ch.stats[stat].rewardBonus = (ch.stats[stat].rewardBonus||0)+bonus;
+  }
+  renderStats();
+}
+
+function editSkill(id, listKey) { openAddSkillModal(listKey, id); }
+
+function removeSkill(id, listKey) {
+  const ch = characters[activeCharIdx];
+  const skill = ch[listKey].find(s=>s.id===id);
+  if (!skill) return;
+  if (skill.sbSlotBonus) ch.extraSoulBoundSlots = Math.max(0,(ch.extraSoulBoundSlots||0)-1);
+  ch[listKey] = ch[listKey].filter(s=>s.id!==id);
+  // If this class skill came from a system skill selection, clear that selection too
+  // so the System Skills tab shows the tier as pending again
+  if (listKey === 'classSkills') {
+    const wasSysSkill = ch.selectedSystemSkills.find(function(s) { return s.id === id; });
+    if (wasSysSkill) {
+      ch.selectedSystemSkills = ch.selectedSystemSkills.filter(function(s) { return s.id !== id; });
+      renderSystemSkills();
+      renderAllTabs();
+    }
+  }
+  renderSkillList(listKey);
+  renderSoulBound();
+  scheduleAutoSave();
+}
+
+// ================================================================
+// GROW SKILL
+// ================================================================
+function growSkill(id, listKey) {
+  const ch = characters[activeCharIdx];
+  const skill = ch[listKey].find(s=>s.id===id);
+  if (!skill) return;
+  const safeId = (typeof id === 'string') ? ("'" + id + "'") : id;
+  openModal(`Grow: [${skill.name}]`, `
+    <div style="margin-bottom:10px;color:var(--text3);font-size:0.83rem">Record a growth event. Changes are saved to the Growth Log.</div>
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">Updated Detail</label><input class="form-input" id="gDetail" value="${escHtml(skill.detail||'')}"/></div>
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">Updated Description</label><textarea class="form-textarea" id="gDesc">${escHtml(skill.desc||'')}</textarea></div>
+    <div class="form-field" style="margin-bottom:12px"><label class="form-label">What Changed?</label><input class="form-input" id="gNotes" placeholder="e.g. Unlocked secondary fire..."/></div>
+    <button class="btn btn-green" style="width:100%" onclick="commitGrowth(${safeId},'${listKey}')">Commit Growth</button>
+  `);
+}
+
+function commitGrowth(id, listKey) {
+  const ch = characters[activeCharIdx];
+  const skill = ch[listKey].find(s=>s.id===id);
+  if (!skill) return;
+  const event = {skillName:skill.name, date:new Date().toLocaleString(), oldDetail:skill.detail, newDetail:getVal('gDetail'), notes:getVal('gNotes')};
+  ch.growthLog.push(event);
+  skill.detail = event.newDetail;
+  skill.desc = getVal('gDesc');
+  renderSkillList(listKey);
+  renderGrowthLog();
+  closeModal();
+}
+
+function renderGrowthLog() {
+  const ch = characters[activeCharIdx];
+  const el = document.getElementById('growthHistory');
+  if (!el) return;
+  if (ch.growthLog.length===0) { el.innerHTML='<div style="color:var(--text3);font-size:0.83rem">Growth events will appear here.</div>'; return; }
+  el.innerHTML='';
+  ch.growthLog.slice().reverse().forEach(ev=>{
+    const d=document.createElement('div');
+    d.className='growth-event';
+    d.innerHTML=`<div class="growth-event-header"><span class="growth-event-name">[${escHtml(ev.skillName)}]</span><span class="growth-event-date">${ev.date}</span></div><div style="font-size:0.83rem;color:var(--text2);margin-top:3px">${ev.notes?`<em>${escHtml(ev.notes)}</em><br/>`:''}${escHtml(ev.newDetail)||'—'}</div>`;
+    el.appendChild(d);
+  });
+}
+
+// ================================================================
+// SYSTEM SKILLS
+// ================================================================
+function renderSystemSkills() {
+  const ch = characters[activeCharIdx];
+  const el = document.getElementById('systemSkillsContent');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const maxTier = Math.min(Math.floor(ch.classLevel / 5) * 5, 100);
+
+  if (maxTier < 5) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:0.83rem;padding:4px">System Skill selections become available at Class Level 5.</div>';
+    return;
+  }
+
+  // Map of skillId -> tier at which it was selected
+  const selectionMap = {};
+  ch.selectedSystemSkills.forEach(function(s) { selectionMap[s.id] = s.tier; });
+
+  for (let tier = 5; tier <= maxTier; tier += 5) {
+    const selection = ch.selectedSystemSkills.find(function(s) { return s.tier === tier; });
+    const isPending = !selection;
+
+    // Tier-specific options (added explicitly for this tier via "+ Add Option")
+    const tierOwned = (ch.systemSkillOptions && ch.systemSkillOptions[tier]) ? [...ch.systemSkillOptions[tier]] : [];
+
+    // Carry-over pool: skills from EARLIER tiers that were NOT selected
+    // These appear as additional choices but are NOT part of tierOwned (not editable/deletable at this tier)
+    const carryOver = [];
+    if (tier > 5) {
+      for (let prevTier = 5; prevTier < tier; prevTier += 5) {
+        const prevOwned = (ch.systemSkillOptions && ch.systemSkillOptions[prevTier]) ? ch.systemSkillOptions[prevTier] : [];
+        prevOwned.forEach(function(sk) {
+          // Include if: not yet selected at any tier, OR selected at THIS tier (show checkmark)
+          const selectedAtTier = selectionMap[sk.id];
+          if (!selectedAtTier || selectedAtTier === tier) {
+            // Don't duplicate if already in tierOwned
+            if (!tierOwned.find(function(o) { return o.id === sk.id; })) {
+              carryOver.push({...sk, _fromTier: prevTier});
+            }
+          }
+        });
+      }
+    }
+
+    // Section container
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:20px;border:1px solid ' + (isPending ? 'var(--accent-dim)' : 'var(--border)') + ';border-radius:6px;overflow:hidden';
+
+    // Section header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:' + (isPending ? 'var(--theme-bg)' : 'var(--bg4)') + ';border-bottom:1px solid var(--border)';
+    const hdrLeft = document.createElement('span');
+    hdrLeft.style.cssText = 'font-family:Cinzel,serif;font-size:0.72rem;letter-spacing:0.1em;color:' + (isPending ? 'var(--accent)' : 'var(--text3)');
+    hdrLeft.textContent = (isPending ? '⚡ ' : '✓ ') + 'CLASS LEVEL ' + tier + ' — SYSTEM SKILL';
+    if (isPending) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:0.62rem;color:var(--accent-dim);margin-left:6px';
+      badge.textContent = '(Choose 1)';
+      hdrLeft.appendChild(badge);
+    }
+    hdr.appendChild(hdrLeft);
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn btn-sm';
+    addBtn.style.cssText = 'background:var(--bg4);color:var(--text3);border-color:var(--border);font-size:0.58rem';
+    addBtn.textContent = '+ Add Option';
+    addBtn.onclick = (function(t) { return function() { openAddSystemSkillOption(t); }; })(tier);
+    hdr.appendChild(addBtn);
+    section.appendChild(hdr);
+
+    const listEl = document.createElement('div');
+    listEl.style.cssText = 'padding:8px;display:flex;flex-direction:column;gap:6px';
+
+    // Helper: build a skill card for display
+    function buildSysCard(sk, fromTier) {
+      const isSelected = !!(selection && selection.id === sk.id);
+      const isGreyed = !isPending && !isSelected;
+      const isCarryOver = !!fromTier; // came from an earlier tier's pool, not this tier's owned list
+
+      const card = document.createElement('div');
+      card.className = 'sys-skill-card' + (isSelected ? ' selected' : '');
+      if (isGreyed) card.style.opacity = '0.4';
+
+      // Checkbox
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'sys-skill-checkbox';
+      cb.checked = isSelected;
+      cb.onchange = (function(sid, t) { return function() { selectSystemSkill(sid, t, this.checked); }; })(sk.id, tier);
+      card.appendChild(cb);
+
+      // Info block
+      const info = document.createElement('div');
+      info.className = 'sys-skill-info';
+
+      const nameRow = document.createElement('div');
+      nameRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'sys-skill-name';
+      nameEl.style.margin = '0';
+      nameEl.textContent = sk.name;
+      nameRow.appendChild(nameEl);
+
+      if (isSelected) {
+        const selBadge = document.createElement('span');
+        selBadge.style.cssText = 'color:var(--green2);font-size:0.68rem;font-family:Cinzel,serif;white-space:nowrap';
+        selBadge.textContent = '✓ Selected — Level ' + tier;
+        nameRow.appendChild(selBadge);
+      }
+      if (isCarryOver) {
+        const coBadge = document.createElement('span');
+        coBadge.style.cssText = 'color:var(--text3);font-size:0.62rem;font-style:italic';
+        coBadge.textContent = '(from Lvl ' + fromTier + ')';
+        nameRow.appendChild(coBadge);
+      }
+      info.appendChild(nameRow);
+
+      if (sk.desc) {
+        const descEl = document.createElement('div');
+        descEl.className = 'sys-skill-desc';
+        descEl.innerHTML = escHtml(sk.desc).replace(/\n/g, '<br/>');
+        info.appendChild(descEl);
+      }
+
+      const tagsEl = document.createElement('div');
+      tagsEl.className = 'sys-skill-tags';
+      if (sk.rarity) {
+        const rc = sk.rarity === 'rare' ? 'rarity-rare' : sk.rarity === 'uncommon' ? 'rarity-uncommon' : sk.rarity === 'passive' ? 'rarity-growth' : 'rarity-common';
+        const rt = document.createElement('span');
+        rt.className = 'sys-skill-rarity ' + rc;
+        rt.textContent = sk.rarity;
+        tagsEl.appendChild(rt);
+      }
+      if (sk.isGrowth) { const t2=document.createElement('span'); t2.className='skill-tag tag-growth'; t2.textContent='Growth'; tagsEl.appendChild(t2); }
+      if (sk.isAttack) { const t2=document.createElement('span'); t2.className='skill-tag tag-attack'; t2.textContent='Attack'; tagsEl.appendChild(t2); }
+      info.appendChild(tagsEl);
+      card.appendChild(info);
+
+      // Edit + Delete buttons
+      // Carry-over skills: edit/delete routes back to their origin tier
+      const editTier = isCarryOver ? fromTier : tier;
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-left:auto;align-self:flex-start;flex-shrink:0';
+      const editBtn2 = document.createElement('button');
+      editBtn2.className = 'btn btn-sm';
+      editBtn2.style.cssText = 'background:var(--bg4);color:var(--text3);border-color:var(--border);font-size:0.58rem';
+      editBtn2.textContent = '✎';
+      editBtn2.title = 'Edit skill option';
+      editBtn2.onclick = (function(et, sid) { return function() { editSystemSkillOption(et, sid); }; })(editTier, sk.id);
+      actions.appendChild(editBtn2);
+      const delBtn2 = document.createElement('button');
+      delBtn2.className = 'btn btn-red btn-xs';
+      delBtn2.textContent = '✕';
+      delBtn2.title = isCarryOver ? 'Delete from origin tier (Lvl ' + fromTier + ')' : 'Delete option';
+      delBtn2.onclick = (function(et, sid) { return function() { confirmDeleteSystemSkillOption(et, sid); }; })(editTier, sk.id);
+      actions.appendChild(delBtn2);
+      card.appendChild(actions);
+      return card;
+    }
+
+    // Render tier-owned options first
+    if (tierOwned.length === 0 && carryOver.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'color:var(--text3);font-size:0.8rem;padding:4px;font-style:italic';
+      empty.textContent = 'No options yet. Click "+ Add Option" to add skill choices for this level.';
+      listEl.appendChild(empty);
+    } else {
+      if (tierOwned.length > 0) {
+        tierOwned.forEach(function(sk) { listEl.appendChild(buildSysCard(sk, null)); });
+      }
+      // Carry-over section separator
+      if (carryOver.length > 0) {
+        if (tierOwned.length > 0) {
+          const sep = document.createElement('div');
+          sep.style.cssText = 'font-family:Cinzel,serif;font-size:0.6rem;letter-spacing:0.08em;color:var(--text3);padding:6px 2px 2px;border-top:1px solid var(--border);margin-top:4px';
+          sep.textContent = 'AVAILABLE FROM PREVIOUS LEVELS';
+          listEl.appendChild(sep);
+        }
+        carryOver.forEach(function(sk) { listEl.appendChild(buildSysCard(sk, sk._fromTier)); });
+      }
+    }
+
+    section.appendChild(listEl);
+    el.appendChild(section);
+  }
+
+  _updateSystemSkillBanner(ch);
+}
+
+// Update the header notification banner and tab dot without full re-render
+function _updateSystemSkillBanner(ch) {
+  const pending = getPendingSystemSkillTiers(ch);
+  // Update banner
+  const banner = document.getElementById('sysSkillBanner');
+  if (banner) {
+    if (pending.length > 0) {
+      banner.style.display = '';
+      banner.innerHTML = '&#9889; System Skill Selection' + (pending.length > 1 ? 's' : '') + ' available! Pending: <strong>' + pending.map(function(t){return 'Lvl '+t;}).join(', ') + '</strong>. Visit the <strong>System Skills</strong> tab to choose.';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+  // Update tab dot
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(function(btn) {
+    if (btn.textContent.includes('System Skills') || btn.innerHTML.includes('System Skills')) {
+      // Rebuild tab text
+      const dot = document.getElementById('sysSkillTabDot');
+      if (dot) dot.style.display = pending.length > 0 ? '' : 'none';
+    }
+  });
+}
+
+// ── Add / Edit system skill option ─────────────────────────────
+function openAddSystemSkillOption(tier, existingId) {
+  const ch = characters[activeCharIdx];
+  const existing = existingId ? (ch.systemSkillOptions?.[tier] || []).find(s => s.id === existingId) : null;
+  const isEdit = !!existing;
+  openModal(`${isEdit ? 'Edit' : 'Add'} Skill Option — Level ${tier} System Skill`, `
+    <div style="color:var(--text3);font-size:0.8rem;margin-bottom:10px">
+      ${isEdit ? 'Edit this skill option.' : `Add a skill option for Class Level ${tier}. Works the same as adding a Class Skill.`}
+    </div>
+    <div class="form-field" style="margin-bottom:8px">
+      <label class="form-label">Skill Name</label>
+      <input class="form-input" id="ssoName" value="${escHtml(existing?.name||'')}" placeholder="e.g. Shadow Step"/>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">Rarity</label>
+        <select class="form-select" id="ssoRarity">
+          ${['common','uncommon','rare','passive'].map(r=>`<option value="${r}" ${(existing?.rarity||'common')===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-field" style="margin-bottom:8px">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="ssoDesc">${escHtml(existing?.desc||'')}</textarea>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <div class="form-checkbox-row"><input type="checkbox" id="ssoIsGrowth" ${existing?.isGrowth?'checked':''}/><label class="form-check-label" for="ssoIsGrowth">Growth</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="ssoIsAttack" ${existing?.isAttack?'checked':''} onchange="toggleSsoAtk()"/><label class="form-check-label" for="ssoIsAttack">Attack</label></div>
+    </div>
+    <div id="ssoAtkOpts" style="display:${existing?.isAttack?'block':'none'}" class="attack-sub-options">
+      <div class="form-row">
+        <div class="form-field"><label class="form-label"># Dice</label><input class="form-input" id="ssoAtkCount" type="number" value="${existing?.attackCount||1}" min="1"/></div>
+        <div class="form-field"><label class="form-label">Dice</label>
+          <select class="form-select" id="ssoAtkDice">${[4,6,8,10,12,20,100].map(d=>`<option value="${d}" ${(existing?.attackDice||20)===d?'selected':''}>D${d}</option>`).join('')}</select>
+        </div>
+        <div class="form-field"><label class="form-label">Stat</label>
+          <select class="form-select" id="ssoAtkStat">
+            <option value="">None</option>
+            ${STAT_KEYS.map(k=>`<option value="${k}" ${existing?.attackStat===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Cost</label><input class="form-input" id="ssoAtkCost" type="number" value="${existing?.attackCost||0}" min="0"/></div>
+        <div class="form-field"><label class="form-label">Cost Type</label>
+          <select class="form-select" id="ssoAtkCostType">
+            ${['mp','hp','none'].map(t=>`<option value="${t}" ${(existing?.attackCostType||'mp')===t?'selected':''}>${t.toUpperCase()}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="saveSystemSkillOption(${tier},'${existingId||''}')">
+      ${isEdit ? 'Save Changes' : `Add to Level ${tier} Options`}
+    </button>
+  `);
+}
+
+function editSystemSkillOption(tier, skillId) {
+  const ch = characters[activeCharIdx];
+  // If this skill is currently selected (i.e. it lives in classSkills), edit it there
+  // so the full class skill editor opens with all fields populated.
+  const isSelected = !!ch.selectedSystemSkills.find(function(s) { return s.id === skillId; });
+  const inClassSkills = !!ch.classSkills.find(function(s) { return s.id === skillId; });
+  if (isSelected && inClassSkills) {
+    openAddSkillModal('classSkills', skillId);
+  } else {
+    openAddSystemSkillOption(tier, skillId);
+  }
+}
+
+function toggleSsoAtk() {
+  const el = document.getElementById('ssoAtkOpts');
+  if (el) el.style.display = isChecked('ssoIsAttack') ? 'block' : 'none';
+}
+
+function saveSystemSkillOption(tier, existingId) {
+  const ch = characters[activeCharIdx];
+  const name = getVal('ssoName').trim();
+  if (!name) { alert('Please enter a skill name.'); return; }
+  if (!ch.systemSkillOptions) ch.systemSkillOptions = {};
+  if (!ch.systemSkillOptions[tier]) ch.systemSkillOptions[tier] = [];
+  const isAtk = isChecked('ssoIsAttack');
+  const skData = {
+    name,
+    rarity: getVal('ssoRarity'),
+    desc: getVal('ssoDesc').trim(),
+    isGrowth: isChecked('ssoIsGrowth'),
+    isAttack: isAtk,
+    ...(isAtk ? {
+      attackDice: parseInt(getVal('ssoAtkDice')) || 20,
+      attackCount: parseInt(getVal('ssoAtkCount')) || 1,
+      attackStat: getVal('ssoAtkStat') || null,
+      attackCost: parseInt(getVal('ssoAtkCost')) || 0,
+      attackCostType: getVal('ssoAtkCostType') || 'mp',
+    } : {}),
+  };
+
+  if (existingId) {
+    // Edit existing option in-place
+    const idx = ch.systemSkillOptions[tier].findIndex(s => s.id === existingId);
+    if (idx !== -1) {
+      ch.systemSkillOptions[tier][idx] = { ...ch.systemSkillOptions[tier][idx], ...skData };
+      // If this option is currently selected, sync the class skill entry too
+      const sel = ch.selectedSystemSkills.find(s => s.tier === tier && s.id === existingId);
+      if (sel) {
+        Object.assign(sel, skData);
+        const cs = ch.classSkills.find(s => s.id === existingId);
+        if (cs) Object.assign(cs, { name: skData.name, desc: skData.desc, detail: skData.rarity || '' });
+      }
+    }
+  } else {
+    // New option
+    ch.systemSkillOptions[tier].push({ id: 'sso_' + tier + '_' + Date.now(), ...skData });
+  }
+
+  closeModal();
+  renderSystemSkills();
+  renderSkillList('classSkills');
+  scheduleAutoSave();
+}
+
+// Delete an option — always available, cascades if it was selected
+function confirmDeleteSystemSkillOption(tier, skillId) {
+  const ch = characters[activeCharIdx];
+  const allOptions = ch.systemSkillOptions?.[tier] || [];
+  const sk = allOptions.find(s => s.id === skillId);
+  if (!sk) return;
+  const isSelected = !!ch.selectedSystemSkills.find(s => s.tier === tier && s.id === skillId);
+  const msg = isSelected
+    ? `Delete "${sk.name}"? It is currently selected — this will also remove it from Class Skills.`
+    : `Delete "${sk.name}" from Level ${tier} options?`;
+  if (!confirm(msg)) return;
+  deleteSystemSkillOption(tier, skillId);
+}
+
+function deleteSystemSkillOption(tier, skillId) {
+  const ch = characters[activeCharIdx];
+  if (ch.systemSkillOptions?.[tier]) {
+    ch.systemSkillOptions[tier] = ch.systemSkillOptions[tier].filter(s => s.id !== skillId);
+  }
+  ch.selectedSystemSkills = ch.selectedSystemSkills.filter(s => !(s.tier === tier && s.id === skillId));
+  ch.classSkills = ch.classSkills.filter(s => s.id !== skillId);
+  renderSystemSkills();
+  renderSkillList('classSkills');
+  renderAllTabs();
+  scheduleAutoSave();
+}
+
+
+function selectSystemSkill(skillId, tier, checked) {
+  const ch = characters[activeCharIdx];
+
+  // Search ALL tiers for the skill — carry-over skills live in a previous tier's options
+  let sk = null;
+  const allTiers = Object.keys(ch.systemSkillOptions || {}).map(Number).sort((a,b)=>a-b);
+  for (const t of allTiers) {
+    const found = (ch.systemSkillOptions[t] || []).find(function(s) { return s.id === skillId; });
+    if (found) { sk = found; break; }
+  }
+  if (!sk) return;
+
+  if (checked) {
+    // Remove any prior selection for this tier from both selectedSystemSkills and classSkills
+    const prior = ch.selectedSystemSkills.find(function(s) { return s.tier === tier; });
+    if (prior) ch.classSkills = ch.classSkills.filter(function(s) { return s.id !== prior.id; });
+    ch.selectedSystemSkills = ch.selectedSystemSkills.filter(function(s) { return s.tier !== tier; });
+    ch.selectedSystemSkills.push(Object.assign({}, sk, { tier: tier }));
+
+    // Add to classSkills as a full editable entry (with system skill tier tracked)
+    if (!ch.classSkills.find(function(s) { return s.id === sk.id; })) {
+      ch.classSkills.push({
+        id: sk.id, name: sk.name, detail: sk.rarity || '', desc: sk.desc || '',
+        isAttack: sk.isAttack || false, isGrowth: sk.isGrowth || false,
+        isSoulBound: false, statAdj: false, sbSlotBonus: false,
+        vitalEffect: null, _sysSkillTier: tier,
+        attackDice: sk.attackDice || 20, attackCount: sk.attackCount || 1,
+        attackStat: sk.attackStat || null, attackCost: sk.attackCost || 0,
+        attackCostType: sk.attackCostType || 'none',
+      });
+    }
+  } else {
+    // Uncheck — clear selection and remove from class skills
+    ch.selectedSystemSkills = ch.selectedSystemSkills.filter(function(s) {
+      return !(s.id === skillId && s.tier === tier);
+    });
+    ch.classSkills = ch.classSkills.filter(function(s) { return s.id !== skillId; });
+  }
+  renderSystemSkills();
+  renderSkillList('classSkills');
+  renderAllTabs();
+  scheduleAutoSave();
+}
+
+// ================================================================
+// STAT REWARDS
+// ================================================================
+function renderStatRewards() {
+  const ch = characters[activeCharIdx];
+  const el = document.getElementById('statRewardsList');
+  if (!el) return;
+  el.innerHTML='';
+  if (!ch.statRewards||ch.statRewards.length===0) { el.innerHTML='<div style="color:var(--text3);font-size:0.83rem">No stat rewards yet.</div>'; return; }
+  ch.statRewards.forEach(r=>{
+    const d=document.createElement('div');
+    d.className='stat-reward-item';
+    const bonusTags = Object.entries(r.bonuses||{}).filter(([,v])=>v>0).map(([k,v])=>`<span class="stat-reward-bonus">+${v} ${STAT_ABBR[k]||k}</span>`).join('');
+    d.draggable = true;
+    d.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="display:flex;align-items:center;gap:4px"><span class="drag-handle" title="Drag to reorder">⠿</span><span style="font-family:'Cinzel',serif;font-size:0.78rem;color:var(--gold)">[${escHtml(r.source||'Reward')}]</span></span>
+        <button class="btn btn-red btn-xs" onclick="removeStatReward(${r.id})">✕</button>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text3);margin-top:2px;font-style:italic">${escHtml(r.desc||'')}</div>
+      <div class="stat-reward-bonuses">${bonusTags}</div>`;
+    el.appendChild(d);
+  });
+  makeDraggable(el, 'statRewards', renderStatRewards);
+}
+
+function openStatRewardModal() {
+  const statInputs = STAT_KEYS.map(k=>`
+    <div class="form-checkbox-row" style="margin-bottom:4px">
+      <label class="form-check-label" style="min-width:90px">${k}</label>
+      <input class="form-input" id="sr_${k}" type="number" value="0" min="0" style="width:55px"/>
+    </div>`).join('');
+  openModal('Add Stat Reward', `
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">Source / Title</label><input class="form-input" id="srSource" placeholder="e.g. Boss Reward, Event"/></div>
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">One-line Description</label><input class="form-input" id="srDesc" placeholder="What led to this reward?"/></div>
+    <div class="form-label" style="margin-bottom:6px">Stat Increases</div>
+    ${statInputs}
+    <button class="btn btn-green" style="width:100%;margin-top:12px" onclick="saveStatReward()">Add Stat Reward</button>
+  `);
+}
+
+function saveStatReward() {
+  const ch = characters[activeCharIdx];
+  const bonuses = {};
+  for (const k of STAT_KEYS) { const v=parseInt(document.getElementById('sr_'+k)?.value)||0; if(v) bonuses[k]=v; }
+  const reward = {id:ch.nextId++, source:getVal('srSource').trim(), desc:getVal('srDesc').trim(), bonuses};
+  ch.statRewards = ch.statRewards||[];
+  ch.statRewards.push(reward);
+  // Apply to rewardBonus
+  for (const [k,v] of Object.entries(bonuses)) { ch.stats[k].rewardBonus=(ch.stats[k].rewardBonus||0)+v; }
+  renderStatRewards();
+  renderStats();
+  closeModal();
+}
+
+function removeStatReward(id) {
+  const ch = characters[activeCharIdx];
+  const r = ch.statRewards.find(x=>x.id===id);
+  if (r) { for (const [k,v] of Object.entries(r.bonuses||{})) ch.stats[k].rewardBonus=Math.max(0,(ch.stats[k].rewardBonus||0)-v); }
+  ch.statRewards = ch.statRewards.filter(x=>x.id!==id);
+  renderStatRewards();
+  renderStats();
+}
+
+// ================================================================
+// WEAPONS (card style)
+// ================================================================
+function renderWeapons() {
+  const ch = characters[activeCharIdx];
+  const el = document.getElementById('weaponsList');
+  if (!el) return;
+  el.innerHTML='';
+  if (!ch.weapons||ch.weapons.length===0) { el.innerHTML='<div style="color:var(--text3);font-size:0.83rem">No weapons or armor.</div>'; return; }
+  ch.weapons.forEach(w=>{
+    const d=document.createElement('div');
+    d.className='weapon-card'+(w.isEquipped?' equipped':'')+(w.isAttack?' attack-weapon':'')+(w.isDefensive?' defensive-weapon':'');
+    const tags=[];
+    if(w.isEquipped) tags.push('<span class="skill-tag tag-equipped">Equipped</span>');
+    if(w.isAttack) tags.push('<span class="skill-tag tag-attack">Attack</span>');
+    if(w.isDefensive) tags.push('<span class="skill-tag" style="background:#0a1a2e;color:#6aaee8;border:1px solid #4a8fc4">Defensive</span>');
+    if(w.isGrowth) tags.push('<span class="skill-tag tag-growth">Growth</span>');
+    if(w.isSoulBound) tags.push('<span class="skill-tag tag-soulbound">Soul Bound</span>');
+    const atkBtns = w.isAttack ? `<button class="to-hit-btn" onclick="rollToHit('${escHtml(w.name)}')">To Hit</button><button class="attack-btn" onclick="rollWeaponAttack(${w.id})">Roll DMG</button>` : '';
+    // Build AC display for defensive items
+    let acLine = '';
+    if (w.isDefensive) {
+      const ch2 = characters[activeCharIdx];
+      let acVal = w.acBase||0;
+      let acParts = [`Base ${acVal}`];
+      if (w.acStatBase) { const sv=calcStatTotal(w.acStatBase,ch2); acVal+=sv; acParts.push(`+${w.acStatBase} Base(${sv})`); }
+      if (w.acStatMod) { const mv=getMod(w.acStatMod,ch2); acVal+=mv; acParts.push(`+${w.acStatMod} Mod(${mv})`); }
+      acLine = `<div class="skill-detail" style="color:var(--blue2)"><strong>AC: ${acVal}</strong> <span style="color:var(--text3);font-size:0.78rem">(${acParts.join(' ')})</span></div>`;
+    }
+    d.draggable = true;
+    d.innerHTML=`
+      <div class="skill-row">
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        <span class="skill-name">${escHtml(w.name)}</span>
+        <div class="skill-actions">${atkBtns}
+          <button class="btn btn-sm" style="background:var(--bg4);color:var(--text3);border-color:var(--border)" onclick="openEditWeaponModal(${w.id})">✎</button>
+          <button class="btn btn-red btn-xs" onclick="removeWeapon(${w.id})">✕</button>
+        </div>
+      </div>
+      ${w.dmg?`<div class="skill-detail"><strong>DMG: ${escHtml(w.dmg)} ${escHtml(w.dmgType||'')}</strong></div>`:''}
+      ${acLine}
+      ${w.desc?`<div class="skill-detail">${escHtml(w.desc)}</div>`:''}
+      ${tags.length?`<div class="skill-row" style="margin-top:4px">${tags.join(' ')}</div>`:''}`;
+    el.appendChild(d);
+  });
+  makeDraggable(el, 'weapons', renderWeapons);
+}
+
+function openAddWeaponModal(weapId) {
+  const ch = characters[activeCharIdx];
+  const ex = weapId ? ch.weapons.find(w=>w.id===weapId) : null;
+  openModal(ex?'Edit Weapon/Armor':'Add Weapon/Armor', `
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">Name</label><input class="form-input" id="wName" value="${escHtml(ex?.name||'')}"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">Damage / Value</label><input class="form-input" id="wDmg" value="${escHtml(ex?.dmg||'')}" placeholder="1d6"/></div>
+      <div class="form-field"><label class="form-label">Type</label><input class="form-input" id="wDmgType" value="${escHtml(ex?.dmgType||'')}" placeholder="piercing"/></div>
+    </div>
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">Description</label><textarea class="form-textarea" id="wDesc">${escHtml(ex?.desc||'')}</textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <div class="form-checkbox-row"><input type="checkbox" id="wEquipped" ${ex?.isEquipped?'checked':''}/><label class="form-check-label" for="wEquipped">Equipped/Active</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="wIsAttack" onchange="toggleWAtk()" ${ex?.isAttack?'checked':''}/><label class="form-check-label" for="wIsAttack">Attack</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="wIsDefensive" onchange="toggleWDef()" ${ex?.isDefensive?'checked':''}/><label class="form-check-label" for="wIsDefensive">Defensive (affects AC)</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="wIsGrowth" ${ex?.isGrowth?'checked':''}/><label class="form-check-label" for="wIsGrowth">Growth</label></div>
+      <div class="form-checkbox-row"><input type="checkbox" id="wIsSoulBound" ${ex?.isSoulBound?'checked':''}/><label class="form-check-label" for="wIsSoulBound">Soul Bound</label></div>
+    </div>
+    <div id="wDefOpts" style="display:none" class="attack-sub-options">
+      <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px">AC = Base Value + optional Stat. e.g. Mage Robes: Base 10, + Vitality Base Stat</div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">AC Base Value</label><input class="form-input" id="wAcBase" type="number" value="${ex?.acBase||0}" min="0"/></div>
+        <div class="form-field"><label class="form-label">+ Stat (Base Value)</label>
+          <select class="form-select" id="wAcStatBase">
+            <option value="">None</option>${STAT_KEYS.map(k=>`<option value="${k}" ${ex?.acStatBase===k?'selected':''}>${k} Base</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">+ Stat (Modifier)</label>
+          <select class="form-select" id="wAcStatMod">
+            <option value="">None</option>${STAT_KEYS.map(k=>`<option value="${k}" ${ex?.acStatMod===k?'selected':''}>${k} Mod</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="wAtkOpts" style="display:none" class="attack-sub-options">
+      <div class="form-row">
+        <div class="form-field"><label class="form-label"># Dice</label><input class="form-input" id="wAtkCount" type="number" value="${ex?.attackCount||1}" min="1"/></div>
+        <div class="form-field"><label class="form-label">Dice</label>
+          <select class="form-select" id="wAtkDice">
+            ${[4,6,8,10,12,20,100].map(d=>`<option value="${d}" ${(ex?.attackDice||20)==d?'selected':''}>D${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">Stat</label>
+          <select class="form-select" id="wAtkStat">
+            <option value="">None</option>${STAT_KEYS.map(k=>`<option value="${k}" ${ex?.attackStat===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label class="form-label">Cost</label><input class="form-input" id="wAtkCost" type="number" value="${ex?.attackCost||0}" min="0"/></div>
+        <div class="form-field"><label class="form-label">Cost Type</label>
+          <select class="form-select" id="wAtkCostType">
+            <option value="mp" ${ex?.attackCostType==='mp'?'selected':''}>MP</option>
+            <option value="hp" ${ex?.attackCostType==='hp'?'selected':''}>HP</option>
+            <option value="none" ${ex?.attackCostType==='none'?'selected':''}>None</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="saveWeapon(${ex?.id||'null'})">${ex?'Save Changes':'Add'}</button>
+  `);
+  if (ex?.isAttack) document.getElementById('wAtkOpts').style.display='block';
+  if (ex?.isDefensive) document.getElementById('wDefOpts').style.display='block';
+}
+function openEditWeaponModal(id) { openAddWeaponModal(id); }
+function toggleWAtk() { const el=document.getElementById('wAtkOpts'); if(el) el.style.display=isChecked('wIsAttack')?'block':'none'; }
+function toggleWDef() { const el=document.getElementById('wDefOpts'); if(el) el.style.display=isChecked('wIsDefensive')?'block':'none'; }
+
+function saveWeapon(existingId) {
+  const ch = characters[activeCharIdx];
+  const isAtk = isChecked('wIsAttack');
+  const isDef = isChecked('wIsDefensive');
+  const w = {
+    id: existingId||ch.nextId++,
+    name:getVal('wName').trim(), dmg:getVal('wDmg').trim(), dmgType:getVal('wDmgType').trim(),
+    desc:getVal('wDesc').trim(), isEquipped:isChecked('wEquipped'),
+    isAttack:isAtk, isDefensive:isDef,
+    isGrowth:isChecked('wIsGrowth'), isSoulBound:isChecked('wIsSoulBound'),
+    ...(isDef?{acBase:parseInt(getVal('wAcBase'))||0, acStatBase:getVal('wAcStatBase')||null, acStatMod:getVal('wAcStatMod')||null}:{}),
+    ...(isAtk?{attackCount:parseInt(getVal('wAtkCount'))||1,attackDice:parseInt(getVal('wAtkDice'))||20,attackStat:getVal('wAtkStat')||null,attackCost:parseInt(getVal('wAtkCost'))||0,attackCostType:getVal('wAtkCostType')}:{}),
+  };
+  if (existingId) { const idx=ch.weapons.findIndex(x=>x.id===existingId); if(idx>=0) ch.weapons[idx]=w; }
+  else ch.weapons.push(w);
+  // Recalc AC whenever weapons change
+  recalcVitals(ch);
+  renderWeapons();
+  // Update AC badge
+  const acEl = document.getElementById('hAC'); if(acEl) acEl.textContent = ch.ac;
+  closeModal();
+  scheduleAutoSave();
+}
+
+function removeWeapon(id) { const ch=characters[activeCharIdx]; ch.weapons=ch.weapons.filter(x=>x.id!==id); renderWeapons(); }
+
+function rollWeaponAttack(id) {
+  const ch = characters[activeCharIdx];
+  const w = ch.weapons.find(x=>x.id===id);
+  if (!w||!w.isAttack) return;
+  let total=0; const rolls=[];
+  for(let i=0;i<(w.attackCount||1);i++){const r=Math.ceil(Math.random()*(w.attackDice||20));rolls.push(r);total+=r;}
+  let bonus=0;
+  if(w.attackStat&&ch.stats[w.attackStat]){bonus=getMod(w.attackStat,ch);total+=bonus;}
+  if(w.attackCostType==='mp'&&w.attackCost>0){ch.mpCurrent=Math.max(0,ch.mpCurrent-w.attackCost);document.getElementById('mpCurrent').value=ch.mpCurrent;updateBar('mp');}
+  addLog(`[${w.name}] DMG`,`${rolls.join('+')}${bonus?` + ${STAT_ABBR[w.attackStat]}(${bonus>=0?'+'+bonus:bonus})`:''}`,total,rolls[0]);
+}
+
+// ================================================================
+// GENERAL RESOURCES
+// ================================================================
+function renderGeneral() {
+  const ch = characters[activeCharIdx];
+  const tbody = document.getElementById('generalTbody');
+  if (!tbody) return;
+  tbody.innerHTML='';
+  ch.general.forEach(g=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.item)}" onchange="upGen(${g.id},'item',this.value)"/></td>
+      <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.qty||'')}" onchange="upGen(${g.id},'qty',this.value)" style="width:60px"/></td>
+      <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.notes||'')}" onchange="upGen(${g.id},'notes',this.value)"/></td>
+      <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem" onclick="removeGen(${g.id})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function upGen(id,f,v){const ch=characters[activeCharIdx];const g=ch.general.find(x=>x.id===id);if(g)g[f]=v;}
+function removeGen(id){const ch=characters[activeCharIdx];ch.general=ch.general.filter(x=>x.id!==id);renderGeneral();}
+function addGeneralRow(){const ch=characters[activeCharIdx];ch.general.push({id:ch.nextId++,item:'',qty:'',notes:''});renderGeneral();}
+
+// ================================================================
+// SOUL BOUND
+// ================================================================
+function renderSoulBound() {
+  const ch = characters[activeCharIdx];
+  const slots=getSoulBoundSlots(ch);
+  const sbEl=document.getElementById('sbSlotCount');
+  if(sbEl)sbEl.textContent=slots;
+  const grid=document.getElementById('soulboundGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const allSkills=[...ch.titles,...ch.raceSkills,...ch.classSkills,...ch.profSkills,...(ch.weapons||[])];
+  const bound=allSkills.filter(s=>s.isSoulBound);
+  for(let i=0;i<slots;i++){
+    const div=document.createElement('div');
+    if(i<bound.length){div.className='soulbound-slot filled';div.innerHTML=`<span class="soulbound-name">[${escHtml(bound[i].name)}]</span>`;}
+    else{div.className='soulbound-slot empty';div.textContent='[ Empty ]';}
+    grid.appendChild(div);
+  }
+}
+
+// ================================================================
+// ATTACK / ROLL
+// ================================================================
+function rollSkillAttack(id, listKey) {
+  const ch = characters[activeCharIdx];
+  const skill = ch[listKey].find(s=>s.id===id);
+  if (!skill||!skill.isAttack) return;
+  let total=0;const rolls=[];
+  for(let i=0;i<(skill.attackCount||1);i++){const r=Math.ceil(Math.random()*(skill.attackDice||20));rolls.push(r);total+=r;}
+  let bonus=0;
+  if(skill.attackStat&&ch.stats[skill.attackStat]){bonus=getMod(skill.attackStat,ch);total+=bonus;}
+  if(skill.attackCostType==='mp'&&skill.attackCost>0){ch.mpCurrent=Math.max(0,ch.mpCurrent-skill.attackCost);document.getElementById('mpCurrent').value=ch.mpCurrent;updateBar('mp');}
+  if(skill.attackCostType==='hp'&&skill.attackCost>0){ch.hpCurrent=Math.max(0,ch.hpCurrent-skill.attackCost);document.getElementById('hpCurrent').value=ch.hpCurrent;updateBar('hp');}
+  addLog(`[${skill.name}] DMG`,`${rolls.join('+')}${bonus?` + ${STAT_ABBR[skill.attackStat]}(${bonus>=0?'+':bonus}${bonus})`:''}`,total,rolls[0]);
+}
+
+function rollToHit(name) {
+  const roll=Math.ceil(Math.random()*100);
+  addLog(`[${name}] To Hit`,`Rolled `,roll,roll);
+}
+
+// ================================================================
+// GAME LOG
+// ================================================================
+function addLog(label, breakdown, total, roll) {
+  const log=document.getElementById('logEntries');
+  const ph=log.querySelector('div[style]');if(ph)ph.remove();
+  const entry=document.createElement('div');entry.className='log-entry';
+  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const critStyle=roll===100?' style="color:#ffd700"':roll===1?' style="color:#ff4444"':'';
+  entry.innerHTML=`<div class="log-entry-header"><span class="log-entry-name">${escHtml(label)}</span><span class="log-entry-time">${time}</span></div><div class="log-entry-result">${escHtml(breakdown)} <span class="roll-total"${critStyle}>${total}</span></div>`;
+  log.insertBefore(entry,log.firstChild);
+  const gl=document.getElementById('gameLog');if(gl.classList.contains('collapsed')){gl.classList.remove('collapsed');document.getElementById('logToggleIcon').textContent='▼';}
+}
+
+function toggleLog(){const gl=document.getElementById('gameLog');gl.classList.toggle('collapsed');document.getElementById('logToggleIcon').textContent=gl.classList.contains('collapsed')?'▲':'▼';}
+
+// ================================================================
+// TABS
+// ================================================================
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ================================================================
+// MODAL
+// ================================================================
+function openModal(title, body) {
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalOverlay').style.display='flex';
+}
+function closeModal(){document.getElementById('modalOverlay').style.display='none';}
+function closeModalClick(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+
+// ================================================================
+// NEW CHARACTER WIZARD
+// ================================================================
+let _wizData = {};
+
+function openNewCharWizard() {
+  _wizData = {step:1, race:'Human', gender:'G', charClass:'Mage', stats:{}};
+  STAT_KEYS.forEach(k=>_wizData.stats[k]=5);
+  openModal('New Character', buildWizardHTML());
+}
+
+function buildWizardHTML() {
+  const step = _wizData.step;
+  if (step===1) return `
+    <div class="wizard-title">Step 1 of 3 — Character Info</div>
+    <div class="wizard-sub">Enter your character's basic information.</div>
+    <div class="form-field" style="margin-bottom:12px"><label class="form-label">Character Name</label><input class="form-input" id="wizName" placeholder="Enter name..." value="${escHtml(_wizData.name||'')}"/></div>
+    <div class="form-label" style="margin-bottom:8px">Starting Race Gender (determines race grade progression)</div>
+    <div class="option-grid">
+      <div class="option-card ${_wizData.gender==='G'?'selected':''}" onclick="selectWiz('gender','G',this)"><div class="option-card-title">Human (G)</div><div class="option-card-desc">Race Level 0–9</div></div>
+      <div class="option-card ${_wizData.gender==='F'?'selected':''}" onclick="selectWiz('gender','F',this)"><div class="option-card-title">Human (F)</div><div class="option-card-desc">Race Level 10–24</div></div>
+    </div>
+    <button class="btn btn-gold" style="width:100%" onclick="wizNext()">Next →</button>
+  `;
+  if (step===2) return `
+    <div class="wizard-title">Step 2 of 3 — Class</div>
+    <div class="wizard-sub">Choose your class. This determines your stat bonus progression.</div>
+    <div class="option-grid">
+      <div class="option-card ${_wizData.charClass==='Mage'?'selected':''}" onclick="selectWiz('charClass','Mage',this)">
+        <div class="option-card-title">Mage</div>
+        <div class="option-card-desc">Level bonuses: +2 INT, +1 WIS, VIT, PER, PER per Class Level.<br/>High MP pool.</div>
+      </div>
+      <div class="option-card ${_wizData.charClass==='Melee'?'selected':''}" onclick="selectWiz('charClass','Melee',this)">
+        <div class="option-card-title">Melee</div>
+        <div class="option-card-desc">Level bonuses: +2 STR, +1 AGI, VIT, PER, WIS per Class Level.<br/>High HP pool.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1" onclick="wizBack()">← Back</button>
+      <button class="btn btn-gold" style="flex:2" onclick="wizNext()">Next →</button>
+    </div>
+  `;
+  if (step===3) {
+    const statInputs = STAT_KEYS.map(k=>`
+      <div class="stat-init-row">
+        <label class="stat-init-label">${k} (${STAT_ABBR[k]})</label>
+        <input class="stat-init-input" id="wizStat_${k}" type="number" value="${_wizData.stats[k]||5}" min="1" max="50"/>
+      </div>`).join('');
+    return `
+      <div class="wizard-title">Step 3 of 3 — Starting Stats</div>
+      <div class="wizard-sub">Enter the starting base values for each stat. The modifier is base ÷ 2.</div>
+      <div class="stat-init-grid">${statInputs}</div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn" style="flex:1" onclick="wizBack()">← Back</button>
+        <button class="btn btn-gold" style="flex:2" onclick="wizCreate()">Create Character ✦</button>
+      </div>`;
+  }
+}
+
+function selectWiz(field, val, el) {
+  _wizData[field]=val;
+  el.closest('.option-grid').querySelectorAll('.option-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function wizNext() {
+  if (_wizData.step===1) { _wizData.name=document.getElementById('wizName').value.trim(); if(!_wizData.name){alert('Please enter a name.');return;} }
+  if (_wizData.step===2) {}
+  _wizData.step++;
+  document.getElementById('modalBody').innerHTML=buildWizardHTML();
+}
+
+function wizBack() { _wizData.step--; document.getElementById('modalBody').innerHTML=buildWizardHTML(); }
+
+function wizCreate() {
+  const startStats={};
+  for(const k of STAT_KEYS){startStats[k]=parseInt(document.getElementById('wizStat_'+k)?.value)||5;}
+  const ch = makeBlankChar(_wizData.name, _wizData.race+' ('+_wizData.gender+')', _wizData.charClass, startStats);
+  characters.push(ch);
+  activeCharIdx=characters.length-1;
+  closeModal();
+  renderAllTabs();
+  renderSheet();
+}
+
+// ================================================================
+// MULTI-CHARACTER
+// ================================================================
+function removeChar(idx, event) {
+  event.stopPropagation();
+  if (characters.length<=1) { alert("Can't remove the last character."); return; }
+  if (!confirm(`Remove character "${characters[idx].name}"?`)) return;
+  characters.splice(idx,1);
+  if (activeCharIdx>=characters.length) activeCharIdx=characters.length-1;
+  renderAllTabs();
+  renderSheet();
+}
+
+// ================================================================
+// SAVE / LOAD / SHARE
+// ================================================================
+const SAVE_KEY = 'chronicle_sheets_v2';
+
+function getSerializableState() {
+  return { characters, activeCharIdx, nextCharId };
+}
+
+function saveAll() {
+  try {
+    const data = JSON.stringify(getSerializableState());
+    localStorage.setItem(SAVE_KEY, data);
+    showSaveStatus('✓ Saved', true);
+    // Update URL hash silently
+    updateURLHash(data);
+  } catch(e) {
+    showSaveStatus('Save failed: ' + e.message, false);
+  }
+}
+
+function loadFromStorage() {
+  // First check URL hash (shareable link takes priority)
+  const hash = window.location.hash;
+  if (hash && hash.length > 2) {
+    try {
+      const decoded = decodeURIComponent(hash.slice(1));
+      const data = JSON.parse(atob(decoded));
+      applyLoadedState(data);
+      showSaveStatus('✓ Loaded from shared link', true);
+      return true;
+    } catch(e) {
+      // Fall through to localStorage
+    }
+  }
+  // Try localStorage
+  try {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      applyLoadedState(data);
+      showSaveStatus('✓ Loaded saved data', true);
+      return true;
+    }
+  } catch(e) {
+    showSaveStatus('Could not load save', false);
+  }
+  showSaveStatus('No saved data', false);
+  return false;
+}
+
+function applyLoadedState(data) {
+  if (data.characters && Array.isArray(data.characters)) {
+    characters.length = 0;
+    data.characters.forEach(c => {
+      // ── Self-healing: recalculate totalFPEarned from actual levels ──
+      c.totalFPEarned = calcTotalFPEarned(c.classLevel || 0, c.raceLevel || 0);
+      // ── Self-healing: recalculate classBonus for each stat ──
+      const cb = {};
+      for (const [stat, bonus] of Object.entries(CLASS_BONUSES)) cb[stat] = bonus * (c.classLevel || 0);
+      for (const stat of STAT_KEYS) {
+        if (c.stats && c.stats[stat]) c.stats[stat].classBonus = cb[stat] || 0;
+      }
+      // ── Ensure theme field exists ──
+      if (!c.theme) c.theme = 'theme-crimson';
+      // ── Ensure systemSkillOptions exists ──
+      if (!c.systemSkillOptions) c.systemSkillOptions = {};
+      // ── Strip character-wrong skills from old saves ──
+      // Devyn must NOT have Cat's Eye (ss6) or Healing Minor (ss7)
+      // Xeva must NOT have Bale Fire Bolt (xeva_ss2) or Light Weapon Training (xeva_ss3)
+      if (c.name === 'Devyn') {
+        const devynBanned = new Set(['ss6','ss7']);
+        for (const t of Object.keys(c.systemSkillOptions)) {
+          c.systemSkillOptions[t] = (c.systemSkillOptions[t] || []).filter(function(sk) { return !devynBanned.has(sk.id); });
+        }
+        c.selectedSystemSkills = (c.selectedSystemSkills || []).filter(function(sk) { return !devynBanned.has(sk.id); });
+        if (c.classSkills) c.classSkills = c.classSkills.filter(function(sk) { return !devynBanned.has(sk.id); });
+      }
+      if (c.name === 'Xeva') {
+        // Ban both the old global IDs (ss2, ss3) and the xeva-namespaced variants — strip from everywhere
+        const xevaBanned = new Set(['ss2','ss3','xeva_ss2','xeva_ss3']);
+        for (const t of Object.keys(c.systemSkillOptions)) {
+          c.systemSkillOptions[t] = (c.systemSkillOptions[t] || []).filter(function(sk) { return !xevaBanned.has(sk.id); });
+        }
+        c.selectedSystemSkills = (c.selectedSystemSkills || []).filter(function(sk) { return !xevaBanned.has(sk.id); });
+        if (c.classSkills) c.classSkills = c.classSkills.filter(function(sk) { return !xevaBanned.has(sk.id); });
+      }
+      // ── Seed systemSkillOptions from SYSTEM_SKILLS only if that tier is completely empty ──
+      for (const [tier, skills] of Object.entries(SYSTEM_SKILLS)) {
+        const t = parseInt(tier);
+        if (!c.systemSkillOptions[t] || c.systemSkillOptions[t].length === 0) {
+          c.systemSkillOptions[t] = skills.map(function(sk) { return Object.assign({}, sk); });
+        }
+      }
+      // ── Self-healing: strip old buggy saves that had multiple selections per tier ──
+      if (c.selectedSystemSkills && Array.isArray(c.selectedSystemSkills)) {
+        const tierCounts = {};
+        c.selectedSystemSkills.forEach(function(s) { tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1; });
+        const hasBadTier = Object.values(tierCounts).some(function(count) { return count > 1; });
+        if (hasBadTier) {
+          const staleIds = new Set(c.selectedSystemSkills.map(function(s) { return s.id; }));
+          c.selectedSystemSkills = [];
+          if (c.classSkills) c.classSkills = c.classSkills.filter(function(s) { return !staleIds.has(s.id); });
+        }
+      }
+      // ── KEY FIX: ensure every selected system skill is present in classSkills ──
+      // makeDevyn stores ss1 in selectedSystemSkills but not in classSkills.
+      // Any save/load gap where classSkills is missing a selected entry is corrected here.
+      if (!c.selectedSystemSkills) c.selectedSystemSkills = [];
+      if (!c.classSkills) c.classSkills = [];
+      c.selectedSystemSkills.forEach(function(sel) {
+        const alreadyInCS = c.classSkills.find(function(sk) { return sk.id === sel.id; });
+        if (!alreadyInCS) {
+          // Re-create the class skill entry from the selection record
+          c.classSkills.push({
+            id: sel.id, name: sel.name, detail: sel.rarity || '', desc: sel.desc || '',
+            isAttack: sel.isAttack || false, isGrowth: sel.isGrowth || false,
+            isSoulBound: false, statAdj: false, sbSlotBonus: false,
+            vitalEffect: null, _sysSkillTier: sel.tier,
+            attackDice: sel.attackDice || 20, attackCount: sel.attackCount || 1,
+            attackStat: sel.attackStat || null, attackCost: sel.attackCost || 0,
+            attackCostType: sel.attackCostType || 'none',
+          });
+        } else {
+          // Ensure _sysSkillTier tag is present
+          if (!alreadyInCS._sysSkillTier) alreadyInCS._sysSkillTier = sel.tier;
+        }
+      });
+      characters.push(c);
+    });
+    // ── If only Devyn was saved (old single-char save), add Xeva ──
+    const hasXeva = characters.some(c => c.name === 'Xeva');
+    if (!hasXeva) {
+      const xeva = makeXeva();
+      recalcVitals(xeva);
+      characters.push(xeva);
+    }
+  }
+  if (typeof data.activeCharIdx === 'number') activeCharIdx = Math.min(data.activeCharIdx, characters.length-1);
+  if (typeof data.nextCharId === 'number') nextCharId = data.nextCharId;
+  // Re-apply active character's theme
+  const activeCh = characters[activeCharIdx];
+  if (activeCh) applyTheme(activeCh.theme || 'theme-crimson');
+}
+
+function showSaveStatus(msg, isGood) {
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'save-status ' + (isGood ? 'saved' : 'unsaved');
+  if (isGood) setTimeout(() => { el.textContent = '✓ Saved'; el.className='save-status saved'; }, 3000);
+}
+
+function updateURLHash(dataStr) {
+  try {
+    const encoded = btoa(encodeURIComponent(dataStr));
+    history.replaceState(null, '', '#' + encoded);
+  } catch(e) {}
+}
+
+function generateShareURL() {
+  saveAll(); // ensure state is current
+  const data = JSON.stringify(getSerializableState());
+  try {
+    const encoded = btoa(encodeURIComponent(data));
+    const url = window.location.origin + window.location.pathname + '#' + encoded;
+    const box = document.getElementById('shareUrlBox');
+    const btn = document.getElementById('copyUrlBtn');
+    box.value = url;
+    box.style.display = 'block';
+    btn.style.display = 'inline-block';
+    showSaveStatus('✓ Share URL generated — click to copy', true);
+  } catch(e) {
+    showSaveStatus('Could not generate URL: data may be too large', false);
+  }
+}
+
+function copyShareURL() {
+  const box = document.getElementById('shareUrlBox');
+  if (!box || !box.value) return;
+  navigator.clipboard.writeText(box.value).then(() => {
+    showSaveStatus('✓ URL copied to clipboard!', true);
+    const btn = document.getElementById('copyUrlBtn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent='Copy', 2000); }
+  }).catch(() => {
+    box.select();
+    document.execCommand('copy');
+    showSaveStatus('✓ URL copied!', true);
+  });
+}
+
+function clearSave() {
+  if (!confirm('Clear all saved data? This cannot be undone.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  history.replaceState(null, '', window.location.pathname);
+  const box = document.getElementById('shareUrlBox');
+  const btn = document.getElementById('copyUrlBtn');
+  if (box) { box.value=''; box.style.display='none'; }
+  if (btn) btn.style.display='none';
+  // Re-initialize with both default characters
+  characters.length = 0;
+  characters.push(makeDevyn());
+  characters.push(makeXeva());
+  activeCharIdx = 0;
+  characters.forEach(ch => recalcVitals(ch));
+  renderAllTabs();
+  renderSheet();
+  showSaveStatus('Save cleared — defaults restored', false);
+}
+
+// Auto-save on any input change (debounced)
+let _autoSaveTimer = null;
+// ================================================================
+// DRAG & DROP REORDER
+// ================================================================
+function makeDraggable(listEl, listKey, renderFn) {
+  if (!listEl) return;
+  const ch = characters[activeCharIdx];
+  const items = ch[listKey];
+  if (!items || items.length < 2) return;
+
+  let dragSrcIdx = null;
+
+  Array.from(listEl.children).forEach(function(card, idx) {
+    if (!card.draggable) return;
+
+    card.addEventListener('dragstart', function(e) {
+      dragSrcIdx = idx;
+      card.classList.add('drag-ghost');
+      e.dataTransfer.effectAllowed = 'move';
+      // Required for Firefox
+      e.dataTransfer.setData('text/plain', idx);
+    });
+
+    card.addEventListener('dragend', function() {
+      card.classList.remove('drag-ghost');
+      listEl.querySelectorAll('[draggable]').forEach(function(c) {
+        c.classList.remove('drag-over-above', 'drag-over-below');
+      });
+    });
+
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragSrcIdx === idx) return;
+      // Determine above vs below based on cursor position
+      const rect = card.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      listEl.querySelectorAll('[draggable]').forEach(function(c) {
+        c.classList.remove('drag-over-above', 'drag-over-below');
+      });
+      card.classList.add(e.clientY < mid ? 'drag-over-above' : 'drag-over-below');
+    });
+
+    card.addEventListener('dragleave', function() {
+      card.classList.remove('drag-over-above', 'drag-over-below');
+    });
+
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (dragSrcIdx === null || dragSrcIdx === idx) return;
+      const rect = card.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < mid;
+
+      // Reorder the data array
+      const moved = items.splice(dragSrcIdx, 1)[0];
+      let targetIdx = items.indexOf(items[idx > dragSrcIdx ? idx - 1 : idx]);
+      // Recalculate target after splice
+      const newTargetIdx = idx > dragSrcIdx ? (insertBefore ? idx - 1 : idx) : (insertBefore ? idx : idx + 1);
+      items.splice(Math.max(0, Math.min(items.length, newTargetIdx)), 0, moved);
+
+      dragSrcIdx = null;
+      scheduleAutoSave();
+      renderFn();
+    });
+  });
+}
+
+function scheduleAutoSave() {
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => saveAll(), 2000);
+}
+
+function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function getVal(id){return document.getElementById(id)?.value||'';}
+function setVal(id,v){const el=document.getElementById(id);if(el)el.value=v;}
+function isChecked(id){return document.getElementById(id)?.checked||false;}
+function setChecked(id,v){const el=document.getElementById(id);if(el)el.checked=v;}
+function wrapTA(id,open,close){const ta=document.getElementById(id);if(!ta)return;const s=ta.selectionStart,e=ta.selectionEnd,sel=ta.value.substring(s,e);ta.value=ta.value.substring(0,s)+open+sel+close+ta.value.substring(e);}
+
+// ================================================================
+// BOOT
+// ================================================================
+(function init() {
+  // Attempt to load saved/shared state — if not found, use defaults
+  const loaded = loadFromStorage();
+  if (!loaded) {
+    characters.length = 0;
+    characters.push(makeDevyn());
+    characters.push(makeXeva());
+    activeCharIdx = 0;
+  }
+  // Ensure vitals are calculated correctly for all characters
+  characters.forEach(ch => recalcVitals(ch));
+  renderAllTabs();
+  renderSheet();
+  // Auto-save on page unload
+  window.addEventListener('beforeunload', () => saveAll());
+  // Auto-save on identity field changes (debounced)
+  document.addEventListener('input', (e) => {
+    const id = e.target?.id;
+    if (id && ['charName','charRace','charClass','charProf','charAC','blessingsText'].includes(id)) {
+      scheduleAutoSave();
+    }
+  });
+})();
+</script>
+</body>
+</html>
