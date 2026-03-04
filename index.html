@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chronicle / Sheets</title>
+<!-- Firebase SDK (compat) — required for live session sync -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700&family=Spectral:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
 <style>
@@ -550,14 +553,23 @@ body {
   padding:8px 12px; background:var(--accent); border-radius:6px 0 0 0; cursor:pointer;
 }
 .log-title       { font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; color:#fff }
-.log-entries     { max-height:220px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px }
-.log-entry       { background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:6px 10px; font-size:0.83rem; animation:fadeSlide 0.3s }
+.log-entries     { max-height:360px; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:8px }
 @keyframes fadeSlide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.log-entry-header  { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px }
-.log-entry-name    { font-family:'Cinzel',serif; font-size:0.68rem; color:var(--accent) }
-.log-entry-time    { font-size:0.62rem; color:var(--text3) }
-.log-entry-result  { color:var(--text2) }
-.roll-total        { font-family:'Cinzel',serif; font-size:1.1rem; color:var(--accent); font-weight:700 }
+/* ── Roll card (new design) ── */
+.log-group       { display:flex; flex-direction:column; gap:2px; animation:fadeSlide 0.3s }
+.log-char-name   { font-family:'Cinzel',serif; font-size:0.7rem; color:var(--text2); padding:0 4px; font-weight:600; letter-spacing:0.05em }
+.log-card        { display:flex; align-items:stretch; background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; min-height:58px; box-shadow:0 1px 4px var(--shadow) }
+.log-card-body   { display:flex; align-items:center; gap:10px; padding:10px 14px; flex:1 }
+.log-avatar      { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:1rem; color:#fff; flex-shrink:0; font-weight:700 }
+.log-label       { font-family:'Cinzel',serif; font-size:0.68rem; letter-spacing:0.06em; line-height:1.5 }
+.log-label-type  { color:var(--text2) }
+.log-label-action{ font-weight:700 }
+.log-divider     { width:1px; background:var(--border); flex-shrink:0; margin:8px 0 }
+.log-card-total  { padding:10px 18px; display:flex; align-items:center; justify-content:center; min-width:68px; font-family:'Cinzel',serif; font-size:2rem; font-weight:700; color:var(--text) }
+.log-entry-time  { font-size:0.6rem; color:var(--text3); text-align:right; padding:0 4px }
+/* Presence dots in log header */
+.log-presence    { display:flex; gap:4px; align-items:center }
+.presence-dot    { width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; font-family:'Cinzel',serif; font-size:0.58rem; color:#fff; cursor:default; font-weight:700 }
 
 /* ══════════════════════════════════════════════
    FORMS
@@ -702,9 +714,7 @@ body {
 <div class="save-bar" id="saveBar">
   <button class="btn btn-green btn-sm" onclick="saveAll()">💾 Save</button>
   <span class="save-status" id="saveStatus">No saved data</span>
-  <button class="btn btn-blue btn-sm" onclick="generateShareURL()">🔗 Share URL</button>
-  <input class="share-url-box" id="shareUrlBox" readonly placeholder="Click 'Share URL' to generate..." onclick="copyShareURL()" style="display:none"/>
-  <button class="btn btn-sm" id="copyUrlBtn" onclick="copyShareURL()" style="display:none;background:var(--bg3);color:var(--text2);border-color:var(--border)">Copy</button>
+  <button class="btn btn-sm" id="goLiveBtn" onclick="goLive()" style="background:var(--bg3);color:var(--text2);border-color:var(--border)" title="Start a live session — all changes sync in real time">⚪ Go Live</button>
   <button class="btn btn-red btn-sm" onclick="clearSave()" style="margin-left:auto">🗑 Clear Save</button>
 </div>
 
@@ -714,11 +724,14 @@ body {
 <!-- GAME LOG -->
 <div class="game-log collapsed" id="gameLog">
   <div class="log-header" onclick="toggleLog()">
-    <span class="log-title">⚄ Game Log</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="log-title">⚄ Game Log</span>
+      <div class="log-presence" id="presenceDots"></div>
+    </div>
     <span id="logToggleIcon">▲</span>
   </div>
   <div class="log-entries" id="logEntries">
-    <div style="color:var(--text3);font-size:0.8rem;text-align:center;padding:8px">Rolls will appear here</div>
+    <div class="log-empty" style="color:var(--text3);font-size:0.8rem;text-align:center;padding:8px">Rolls will appear here</div>
   </div>
 </div>
 
@@ -2652,18 +2665,267 @@ function rollToHit(name) {
 // ================================================================
 // GAME LOG
 // ================================================================
-function addLog(label, breakdown, total, roll) {
-  const log=document.getElementById('logEntries');
-  const ph=log.querySelector('div[style]');if(ph)ph.remove();
-  const entry=document.createElement('div');entry.className='log-entry';
-  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const critStyle=roll===100?' style="color:#ffd700"':roll===1?' style="color:#ff4444"':'';
-  entry.innerHTML=`<div class="log-entry-header"><span class="log-entry-name">${escHtml(label)}</span><span class="log-entry-time">${time}</span></div><div class="log-entry-result">${escHtml(breakdown)} <span class="roll-total"${critStyle}>${total}</span></div>`;
-  log.insertBefore(entry,log.firstChild);
-  const gl=document.getElementById('gameLog');if(gl.classList.contains('collapsed')){gl.classList.remove('collapsed');document.getElementById('logToggleIcon').textContent='▼';}
+// ================================================================
+// FIREBASE REAL-TIME SYNC
+// ================================================================
+// ► SETUP: Replace these placeholder values with your Firebase project config.
+//   1. Go to console.firebase.google.com → create a project (free Spark plan)
+//   2. Add a Web App → copy the firebaseConfig object here
+//   3. In Firebase console → Realtime Database → Create database → Start in test mode
+//      (sets rules to allow public read/write — fine for a private game table)
+// ----------------------------------------------------------------
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyAwdj3h3G4hiuRTmSOrOhumNzV1h1uIvgE',
+  authDomain:        'eureka-dray.firebaseapp.com',
+  databaseURL:       'https://eureka-dray-default-rtdb.firebaseio.com',
+  projectId:         'eureka-dray',
+  storageBucket:     'eureka-dray.firebasestorage.app',
+  messagingSenderId: '1064032903527',
+  appId:             '1:1064032903527:web:8a6bc8e2ef6723a5218fc2'
+};
+// Recommended Realtime Database rules (paste in Firebase console → Rules):
+// { "rules": { "rooms": { ".read": true, ".write": true } } }
+// ----------------------------------------------------------------
+
+let FIREBASE_CONFIGURED = false;
+let _firebaseDb = null;
+let _roomId = null;
+let _receivingRemoteUpdate = false;
+
+// Stable per-browser user ID (survives page refresh in the same tab session)
+const _userId = (function() {
+  let uid = sessionStorage.getItem('chronicle_uid');
+  if (!uid) { uid = 'u' + Math.random().toString(36).slice(2, 9); sessionStorage.setItem('chronicle_uid', uid); }
+  return uid;
+})();
+
+// Boot Firebase if config looks real
+(function() {
+  try {
+    if (typeof firebase !== 'undefined' && FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY') {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      _firebaseDb = firebase.database();
+      FIREBASE_CONFIGURED = true;
+    }
+  } catch(e) { console.warn('Firebase init failed:', e.message); }
+})();
+
+function generateRoomId() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function toggleLog(){const gl=document.getElementById('gameLog');gl.classList.toggle('collapsed');document.getElementById('logToggleIcon').textContent=gl.classList.contains('collapsed')?'▲':'▼';}
+function goLive() {
+  if (!FIREBASE_CONFIGURED) {
+    alert('Firebase is not configured yet.\n\nTo enable live sessions:\n1. Create a free project at console.firebase.google.com\n2. Copy your config into the FIREBASE_CONFIG object in this HTML file\n3. In Firebase console → Realtime Database → create a database in test mode');
+    return;
+  }
+  if (_roomId) { copyRoomLink(); return; }
+  const roomId = generateRoomId();
+  joinRoom(roomId, true);
+}
+
+function joinRoom(roomId, isCreator) {
+  if (!_firebaseDb) return;
+  _roomId = roomId;
+
+  // Reflect room ID in the URL so others can join via the same link
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', roomId);
+  history.replaceState(null, '', url.toString());
+
+  const roomRef = _firebaseDb.ref('rooms/' + roomId);
+
+  // Presence — auto-remove on disconnect
+  const presRef = roomRef.child('presence/' + _userId);
+  const chName = characters[activeCharIdx] ? characters[activeCharIdx].name : 'Player';
+  presRef.set({ uid: _userId, name: chName, joined: Date.now() });
+  presRef.onDisconnect().remove();
+
+  // If we created the room, push our current characters up
+  if (isCreator) pushCharactersToFirebase();
+
+  // Listen for character state changes from others
+  roomRef.child('characters').on('value', function(snap) {
+    const val = snap.val();
+    if (!val || val.by === _userId) return; // skip own pushes
+    _receivingRemoteUpdate = true;
+    try {
+      applyLoadedState(JSON.parse(val.payload));
+      characters.forEach(function(ch) { recalcVitals(ch); });
+      renderAllTabs();
+      renderSheet();
+    } catch(e) { console.warn('Firebase character sync error:', e); }
+    _receivingRemoteUpdate = false;
+  });
+
+  // Listen for new rolls — skip existing history on join
+  let rollInitDone = false;
+  roomRef.child('rolls').orderByChild('ts').on('child_added', function(snap) {
+    if (!rollInitDone) return;
+    const data = snap.val();
+    if (data) _renderRollCard(data);
+  });
+  setTimeout(function() { rollInitDone = true; }, 300);
+
+  // Listen for presence changes
+  roomRef.child('presence').on('value', function(snap) {
+    _renderPresence(snap.val() || {});
+  });
+
+  updateGoLiveBtn();
+}
+
+function pushCharactersToFirebase() {
+  if (!_firebaseDb || !_roomId || _receivingRemoteUpdate) return;
+  _firebaseDb.ref('rooms/' + _roomId + '/characters').set({
+    payload: JSON.stringify(getSerializableState()),
+    by: _userId,
+    ts: Date.now()
+  });
+}
+
+function copyRoomLink() {
+  if (!_roomId) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', _roomId);
+  navigator.clipboard.writeText(url.toString()).then(function() {
+    showSaveStatus('✓ Room link copied — share it with your players!', true);
+    const btn = document.getElementById('goLiveBtn');
+    if (btn) { btn.textContent = '✓ Link Copied!'; setTimeout(updateGoLiveBtn, 2000); }
+  }).catch(function() {
+    showSaveStatus('Room link: ' + url.toString(), true);
+  });
+}
+
+function updateGoLiveBtn() {
+  const btn = document.getElementById('goLiveBtn');
+  if (!btn) return;
+  if (_roomId) {
+    btn.textContent = '🟢 Room: ' + _roomId;
+    btn.title = 'Click to copy the room link';
+    btn.style.background = 'var(--green2)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--green)';
+    btn.onclick = copyRoomLink;
+  } else {
+    btn.textContent = '⚪ Go Live';
+    btn.title = 'Start a live session — all changes sync in real time';
+    btn.style.background = 'var(--bg3)';
+    btn.style.color = 'var(--text2)';
+    btn.style.borderColor = 'var(--border)';
+    btn.onclick = goLive;
+  }
+}
+
+function _renderPresence(usersObj) {
+  const el = document.getElementById('presenceDots');
+  if (!el) return;
+  el.innerHTML = Object.values(usersObj).map(function(u) {
+    const initial = (u.name || u.uid || '?').charAt(0).toUpperCase();
+    return '<div class="presence-dot" title="' + escHtml(u.name || u.uid) + '">' + initial + '</div>';
+  }).join('');
+}
+
+function initFirebase() {
+  if (!FIREBASE_CONFIGURED) return;
+  const params = new URLSearchParams(window.location.search);
+  const roomParam = params.get('room');
+  if (roomParam) joinRoom(roomParam, false);
+}
+
+// ================================================================
+// ROLL LOG — new card design
+// ================================================================
+function _parseLabel(label) {
+  // "[SkillName] DMG"  /  "[SkillName] To Hit"
+  const skillMatch = label.match(/^\[(.+?)\]\s+(.+)$/);
+  if (skillMatch) return { type: skillMatch[2].toUpperCase(), action: skillMatch[1].toUpperCase() };
+  // "Strength Check" etc.
+  const statCheck = label.match(/^(\w+)\s+Check$/i);
+  if (statCheck) {
+    const abbr = STAT_ABBR[statCheck[1]] || statCheck[1].toUpperCase().slice(0, 3);
+    return { type: abbr, action: 'CHECK' };
+  }
+  if (label === 'Level Up!')          return { type: 'LEVEL',  action: 'UP'      };
+  if (label === 'Level Up Undone')    return { type: 'LEVEL',  action: 'UNDO'    };
+  if (label.startsWith('System Skill')) return { type: 'SKILL', action: 'UNLOCK' };
+  const parts = label.trim().split(/\s+/);
+  if (parts.length >= 2) return { type: parts[0].toUpperCase(), action: parts.slice(1).join(' ').toUpperCase() };
+  return { type: 'ROLL', action: label.toUpperCase() };
+}
+
+function _renderRollCard(data) {
+  const log = document.getElementById('logEntries');
+  if (!log) return;
+  const ph = log.querySelector('.log-empty');
+  if (ph) ph.remove();
+
+  const isCrit   = data.roll === 100;
+  const isFumble = data.roll === 1;
+  const totalColor = isCrit ? '#ffd700' : isFumble ? '#ff4444' : '';
+  const time = new Date(data.ts).toLocaleString([], {
+    month: 'numeric', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+  const initial = (data.charName || '?').charAt(0).toUpperCase();
+
+  const group = document.createElement('div');
+  group.className = 'log-group';
+  group.innerHTML =
+    '<div class="log-char-name">' + escHtml(data.charName) + '</div>' +
+    '<div class="log-card">' +
+      '<div class="log-card-body">' +
+        '<div class="log-avatar" style="background:' + escHtml(data.accentColor) + '">' + initial + '</div>' +
+        '<div class="log-label">' +
+          '<span class="log-label-type">' + escHtml(data.labelType) + '</span>' +
+          '<span class="log-label-type">: </span>' +
+          '<span class="log-label-action" style="color:' + escHtml(data.accentColor) + '">' + escHtml(data.labelAction) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="log-divider"></div>' +
+      '<div class="log-card-total"' + (totalColor ? ' style="color:' + totalColor + '"' : '') + '>' + data.total + '</div>' +
+    '</div>' +
+    '<div class="log-entry-time">' + escHtml(time) + '</div>';
+
+  log.insertBefore(group, log.firstChild);
+
+  const gl = document.getElementById('gameLog');
+  if (gl.classList.contains('collapsed')) {
+    gl.classList.remove('collapsed');
+    document.getElementById('logToggleIcon').textContent = '▼';
+  }
+}
+
+function addLog(label, breakdown, total, roll) {
+  const ch = characters[activeCharIdx];
+  const charName    = ch ? ch.name : 'Unknown';
+  const accentColor = THEME_DOTS[ch ? (ch.theme || 'theme-crimson') : 'theme-crimson'] || '#8b1a1a';
+  const parsed      = _parseLabel(label);
+
+  const rollData = {
+    charName,
+    accentColor,
+    labelType:   parsed.type,
+    labelAction: parsed.action,
+    total,
+    roll,
+    ts: Date.now()
+  };
+
+  // Render locally
+  _renderRollCard(rollData);
+
+  // Broadcast to room if live
+  if (_firebaseDb && _roomId) {
+    _firebaseDb.ref('rooms/' + _roomId + '/rolls').push(rollData);
+  }
+}
+
+function toggleLog() {
+  const gl = document.getElementById('gameLog');
+  gl.classList.toggle('collapsed');
+  document.getElementById('logToggleIcon').textContent = gl.classList.contains('collapsed') ? '▲' : '▼';
+}
 
 // ================================================================
 // TABS
@@ -2798,8 +3060,15 @@ function saveAll() {
     const data = JSON.stringify(getSerializableState());
     localStorage.setItem(SAVE_KEY, data);
     showSaveStatus('✓ Saved', true);
-    // Update URL hash silently
     updateURLHash(data);
+    // Sync to Firebase room if live
+    if (_firebaseDb && _roomId && !_receivingRemoteUpdate) {
+      _firebaseDb.ref('rooms/' + _roomId + '/characters').set({
+        payload: data,
+        by: _userId,
+        ts: Date.now()
+      });
+    }
   } catch(e) {
     showSaveStatus('Save failed: ' + e.message, false);
   }
@@ -3079,27 +3348,40 @@ function wrapTA(id,open,close){const ta=document.getElementById(id);if(!ta)retur
 // BOOT
 // ================================================================
 (function init() {
-  // Attempt to load saved/shared state — if not found, use defaults
-  const loaded = loadFromStorage();
-  if (!loaded) {
+  // If a room ID is in the URL and Firebase is configured, skip local storage
+  // (we'll load from Firebase via the listener in joinRoom)
+  const inRoom = FIREBASE_CONFIGURED && new URLSearchParams(window.location.search).get('room');
+
+  if (!inRoom) {
+    const loaded = loadFromStorage();
+    if (!loaded) {
+      characters.length = 0;
+      characters.push(makeDevyn());
+      characters.push(makeXeva());
+      activeCharIdx = 0;
+    }
+  } else {
+    // Start with defaults; Firebase listener will replace them momentarily
     characters.length = 0;
     characters.push(makeDevyn());
     characters.push(makeXeva());
     activeCharIdx = 0;
   }
-  // Ensure vitals are calculated correctly for all characters
+
   characters.forEach(ch => recalcVitals(ch));
   renderAllTabs();
   renderSheet();
-  // Auto-save on page unload
+
   window.addEventListener('beforeunload', () => saveAll());
-  // Auto-save on identity field changes (debounced)
   document.addEventListener('input', (e) => {
     const id = e.target?.id;
     if (id && ['charName','charRace','charClass','charProf','charAC','blessingsText'].includes(id)) {
       scheduleAutoSave();
     }
   });
+
+  // Connect to Firebase room if ?room= is in the URL
+  initFirebase();
 })();
 </script>
 </body>
