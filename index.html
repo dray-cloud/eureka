@@ -47,6 +47,42 @@
   --accent-pill:  #c0392b;
 }
 
+/* ══════════════════════════════════════════════
+   DARK MODE PALETTE
+══════════════════════════════════════════════ */
+body.dark-mode {
+  --bg:      #1a1814;
+  --bg2:     #201e18;
+  --bg3:     #28251e;
+  --bg4:     #302c24;
+  --panel:   #24201a;
+  --panel2:  #2a261e;
+  --text:    #ede5d0;
+  --text2:   #c0b498;
+  --text3:   #7a6e58;
+  --border:  #3a342a;
+  --border2: #4c4436;
+  --shadow:  rgba(0,0,0,0.45);
+  --shadow2: rgba(0,0,0,0.7);
+  --accent-pale: rgba(139,26,26,0.15);
+}
+/* Fix elements with hardcoded whites in dark mode */
+body.dark-mode .char-tab.active   { background: var(--panel) }
+body.dark-mode .btn-levelup-top   { background: var(--bg3); color: var(--accent) }
+body.dark-mode .modal-overlay     { background: rgba(0,0,0,0.75) }
+body.dark-mode .btn-red           { background: rgba(192,57,43,0.12) }
+body.dark-mode .btn-blue          { background: rgba(37,99,168,0.12) }
+body.dark-mode .btn-green         { background: rgba(45,122,45,0.12) }
+body.dark-mode .btn-purple        { background: rgba(124,58,237,0.12) }
+body.dark-mode .btn-gold          { background: rgba(139,26,26,0.12) }
+body.dark-mode .rarity-common     { background: rgba(100,100,0,0.15);   color:#c0b840 }
+body.dark-mode .rarity-uncommon   { background: rgba(45,122,45,0.15);   color:#5cc05c }
+body.dark-mode .rarity-rare       { background: rgba(37,99,168,0.15);   color:#6aaeee }
+body.dark-mode .rarity-growth     { background: rgba(45,122,45,0.15);   color:#5cc05c }
+body.dark-mode .stat-reward-bonus { background: rgba(45,122,45,0.15);   color:#5cc05c }
+body.dark-mode .tag-unique        { background: rgba(138,101,32,0.18);  color:#c8a040 }
+body.dark-mode .soulbound-slot.filled { background: rgba(124,58,237,0.12) }
+
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
 html { font-size:14px }
 body {
@@ -683,6 +719,18 @@ body {
   background-clip:text; animation:rainbowShift 4s linear infinite; background-size:200%;
 }
 @keyframes rainbowShift { 0%{background-position:0%} 100%{background-position:200%} }
+/* Rainbow theme — animated gradient on all header bars */
+.theme-rainbow .app-bar,
+.theme-rainbow .sheet-header,
+.theme-rainbow .log-header {
+  background: linear-gradient(90deg,#c00,#d80,#c8c000,#080,#26c,#70c,#c00);
+  background-size: 200%;
+  animation: rainbowShift 5s linear infinite;
+}
+.theme-rainbow .app-logo-wrap  { background:rgba(0,0,0,0.22); border-right-color:rgba(255,255,255,0.15) }
+.theme-rainbow .sheet-header   { border-bottom-color:rgba(0,0,0,0.2) }
+.theme-rainbow .race-grade-badge,
+.theme-rainbow .header-badge   { background:rgba(0,0,0,0.28); border-color:rgba(255,255,255,0.18) }
 
 /* ══════════════════════════════════════════════
    RESPONSIVE
@@ -768,6 +816,7 @@ body {
   <button class="btn btn-green btn-sm" onclick="saveAll()">💾 Save</button>
   <span class="save-status" id="saveStatus">No saved data</span>
   <button class="btn btn-sm" id="goLiveBtn" onclick="goLive()" style="background:var(--bg3);color:var(--text2);border-color:var(--border)" title="Start a live session — all changes sync in real time">⚪ Go Live</button>
+  <button class="btn btn-sm" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark / light mode" style="font-size:0.85rem;padding:3px 9px">🌙</button>
   <button class="btn btn-red btn-sm" onclick="clearSave()" style="margin-left:auto">🗑 Clear Save</button>
 </div>
 
@@ -1485,6 +1534,7 @@ function spendFP(stat) {
   if (fp<=0) return;
   ch.stats[stat].freePoints = (ch.stats[stat].freePoints||0)+1;
   renderStats();
+  scheduleAutoSave();
 }
 
 function rollStat(stat) {
@@ -1518,6 +1568,7 @@ function changeVital(type, action) {
   document.getElementById(type+'Current').value=newVal;
   document.getElementById(type+'Change').value='';
   updateBar(type);
+  scheduleAutoSave();
 }
 
 // ================================================================
@@ -3343,7 +3394,26 @@ function copyShareURL() {
 }
 
 function clearSave() {
-  if (!confirm('Clear all saved data? This cannot be undone.')) return;
+  openModal('⚠️ Caution', `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2.4rem;margin-bottom:8px">⚠️</div>
+      <div style="font-family:'Cinzel',serif;font-size:1rem;color:#c0392b;font-weight:700;margin-bottom:8px">Clear All Saved Data?</div>
+      <div style="color:var(--text2);font-size:0.88rem;line-height:1.65">
+        This will permanently delete all character data, customizations, and settings from this browser.<br/><br/>
+        <strong style="color:var(--text)">This cannot be undone.</strong>
+      </div>
+    </div>
+    <div style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.3);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:#c0392b;font-family:'Cinzel',serif;letter-spacing:0.04em;text-align:center">
+      All characters will be reset to their defaults.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" style="flex:1;font-weight:700" onclick="closeModal();_executeClearSave()">Yes, Clear Everything</button>
+    </div>
+  `);
+}
+
+function _executeClearSave() {
   localStorage.removeItem(SAVE_KEY);
   history.replaceState(null, '', window.location.pathname);
   const box = document.getElementById('shareUrlBox');
@@ -3443,23 +3513,34 @@ function setChecked(id,v){const el=document.getElementById(id);if(el)el.checked=
 function wrapTA(id,open,close){const ta=document.getElementById(id);if(!ta)return;const s=ta.selectionStart,e=ta.selectionEnd,sel=ta.value.substring(s,e);ta.value=ta.value.substring(0,s)+open+sel+close+ta.value.substring(e);}
 
 // ================================================================
+// DARK MODE
+// ================================================================
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('chronicle_dark_mode', isDark ? '1' : '0');
+  const btn = document.getElementById('darkModeBtn');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+function initDarkMode() {
+  if (localStorage.getItem('chronicle_dark_mode') === '1') {
+    document.body.classList.add('dark-mode');
+    const btn = document.getElementById('darkModeBtn');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
+// ================================================================
 // BOOT
 // ================================================================
 (function init() {
-  // If a room ID is in the URL and Firebase is configured, skip local storage
-  // (we'll load from Firebase via the listener in joinRoom)
-  const inRoom = FIREBASE_CONFIGURED && new URLSearchParams(window.location.search).get('room');
+  // Apply dark mode before first render to avoid flash
+  initDarkMode();
 
-  if (!inRoom) {
-    const loaded = loadFromStorage();
-    if (!loaded) {
-      characters.length = 0;
-      characters.push(makeDevyn());
-      characters.push(makeXeva());
-      activeCharIdx = 0;
-    }
-  } else {
-    // Start with defaults; Firebase listener will replace them momentarily
+  // Always load from localStorage first so data persists across refreshes.
+  // Firebase listener will layer in any updates from other players on top.
+  const loaded = loadFromStorage();
+  if (!loaded) {
     characters.length = 0;
     characters.push(makeDevyn());
     characters.push(makeXeva());
