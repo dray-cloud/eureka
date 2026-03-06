@@ -874,10 +874,13 @@ body.dark-mode .condition-btn.active { background:rgba(0,0,0,0.3) }
 }
 .dice-fab-btn {
   width:44px; height:44px; border-radius:50%;
-  background:var(--dm-accent, var(--accent)); color:#fff;
-  border:2px solid var(--dm-accent2, var(--accent-dim)); cursor:pointer;
+  background:var(--accent); color:#fff;
+  border:2px solid var(--accent-dim); cursor:pointer;
   font-size:1.4rem; display:flex; align-items:center; justify-content:center;
   box-shadow:0 2px 12px var(--shadow2); transition:transform 0.15s, box-shadow 0.15s, background 0.25s, border-color 0.25s;
+}
+body.dm-galaxy-active .dice-fab-btn {
+  background:var(--dm-accent); border-color:var(--dm-accent2);
 }
 .dice-fab-btn:hover { transform:scale(1.1); box-shadow:0 4px 18px var(--shadow2) }
 .dice-fab-btn.open  { transform:scale(0.9) }
@@ -1294,6 +1297,48 @@ body.dark-mode .condition-btn.active { background:rgba(0,0,0,0.3) }
 }
 .dm-bank-del-btn:hover { background:rgba(192,57,43,0.1); color:var(--red2) }
 
+/* ── DM Private Dice Roller ── */
+.dm-private-roll-bar {
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:6px 12px; flex-shrink:0; display:flex; flex-direction:column; gap:5px;
+}
+.dm-private-roll-hdr {
+  display:flex; align-items:center; gap:8px;
+}
+.dm-private-roll-label {
+  font-family:'Cinzel',serif; font-size:0.5rem; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--text3); white-space:nowrap;
+}
+.dm-private-roll-label::before { content:'🔒 '; font-size:0.65rem }
+.dm-dice-quick-row { display:flex; gap:4px; flex-wrap:wrap; align-items:center }
+.dm-die-btn {
+  background:var(--bg3); border:1px solid var(--border); border-radius:4px;
+  color:var(--text2); font-family:'Cinzel',serif; font-size:0.54rem; letter-spacing:0.04em;
+  padding:3px 7px; cursor:pointer; transition:all 0.15s;
+}
+.dm-die-btn:hover { background:var(--dm-accent); color:#fff; border-color:var(--dm-accent) }
+.dm-die-mod-input {
+  background:var(--bg3); border:1px solid var(--border); border-radius:4px;
+  color:var(--text); font-size:0.72rem; width:44px; padding:2px 5px; text-align:center;
+}
+.dm-private-result-row {
+  display:none; align-items:center; gap:8px; padding:3px 0;
+}
+.dm-private-result-row.visible { display:flex }
+.dm-private-result-val {
+  font-family:'Cinzel',serif; font-size:1.1rem; font-weight:700; color:var(--dm-accent2);
+  min-width:36px; text-align:center;
+}
+.dm-private-result-detail { font-size:0.72rem; color:var(--text3); flex:1 }
+.dm-private-log { overflow-y:auto; flex:0 0 auto; max-height:120px; padding:4px 12px }
+.dm-private-log-entry {
+  padding:4px 0; border-bottom:1px solid var(--border); font-size:0.76rem;
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+}
+.dm-private-log-entry:last-child { border-bottom:none }
+.dm-private-log-roll { font-family:'Cinzel',serif; font-size:0.88rem; font-weight:700; color:var(--dm-accent2) }
+.dm-private-log-detail { color:var(--text3); font-size:0.68rem }
+
 /* ── Galaxy DM Theme ── */
 #nebula-bg, #star3, #ripple-canvas { display:none }
 @keyframes starDrift1  { from{transform:translateY(0)}   to{transform:translateY(-40px)} }
@@ -1423,6 +1468,20 @@ body.dm-galaxy-active #darkModeBtn { display:none }
   .game-log { width:100%; border-radius:0; border-left:none }
   .header-meta { gap:6px }
   .dice-fab { right:10px; bottom:52px }
+
+  /* DM view mobile — stack columns vertically, unpin log */
+  .dm-view { grid-template-columns:1fr; min-height:unset }
+  .dm-players-col { max-height:unset; overflow-y:visible }
+  .dm-log-col {
+    position:static;
+    max-height:unset;
+    border-left:none;
+    border-top:1px solid var(--border);
+  }
+  .dm-card-body { grid-template-columns:1fr }
+  .dm-card-section { border-right:none; border-bottom:1px solid var(--border) }
+  .dm-card-section:last-child { border-bottom:none }
+  .dm-private-log { max-height:80px }
 }
 </style>
 </head>
@@ -2520,7 +2579,7 @@ function buildSkillCard(skill, listKey) {
   if (skill.isUnique) tags.push('<span class="skill-tag tag-unique">Unique</span>');
   if (skill.statAdj && skill.statBonuses) {
     const bonusStrs = Object.entries(skill.statBonuses).filter(([,v])=>v>0).map(([k,v])=>`+${v} ${STAT_ABBR[k]||k}`);
-    if (bonusStrs.length) tags.push(`<span class="skill-tag" style="background:#1a2a10;color:var(--green2);border:1px solid var(--green)">${bonusStrs.join(' ')}</span>`);
+    if (bonusStrs.length) tags.push(`<span class="skill-tag tag-growth">${bonusStrs.join(' ')}</span>`);
   }
   if (skill.sbSlotBonus) tags.push('<span class="skill-tag tag-soulbound">+SB Slot</span>');
   if (skill._sysSkillTier) tags.push('<span class="skill-tag" style="background:var(--theme-bg);color:var(--accent);border:1px solid var(--accent-dim);font-size:0.58rem">Sys Lvl ' + skill._sysSkillTier + '</span>');
@@ -3669,8 +3728,13 @@ function joinRoom(roomId, isCreator) {
     const val = snap.val();
     if (!val || val.by === _userId) return; // skip own pushes
     _receivingRemoteUpdate = true;
+    // Preserve local navigation — each client navigates independently
+    const savedActiveIdx = activeCharIdx;
+    const savedIsDMView  = isDMView;
     try {
       applyLoadedState(JSON.parse(val.payload));
+      activeCharIdx = Math.min(savedActiveIdx, characters.length - 1);
+      isDMView = savedIsDMView;
       characters.forEach(function(ch) { recalcVitals(ch); });
       renderAllTabs();
       renderSheet();
@@ -4719,6 +4783,26 @@ function buildDMHTML() {
       </div>
     </div>
     <div class="dm-log-col">
+      <div class="dm-private-roll-bar">
+        <div class="dm-private-roll-hdr">
+          <span class="dm-private-roll-label">DM Private Roll</span>
+          <div class="dm-dice-quick-row">
+            <button class="dm-die-btn" onclick="rollDMPrivate(4)">d4</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(6)">d6</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(8)">d8</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(10)">d10</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(12)">d12</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(20)">d20</button>
+            <button class="dm-die-btn" onclick="rollDMPrivate(100)">d100</button>
+            <input class="dm-die-mod-input" id="dmPrivateMod" type="number" value="0" placeholder="±mod" title="Modifier"/>
+          </div>
+        </div>
+        <div class="dm-private-result-row" id="dmPrivateResultRow">
+          <span class="dm-private-result-val" id="dmPrivateResultVal">—</span>
+          <span class="dm-private-result-detail" id="dmPrivateResultDetail"></span>
+        </div>
+      </div>
+      <div class="dm-private-log" id="dmPrivateLog"></div>
       <div class="dm-log-header">
         <span class="dm-log-title">Game Log</span>
       </div>
@@ -4756,6 +4840,38 @@ function dmUpdateDMLog() {
 
 // Legacy alias — now handled by toggleCharCondition
 function toggleDMCondition(charIdx, condId) { toggleCharCondition(charIdx, condId); }
+
+let _dmPrivateLog = [];
+
+function rollDMPrivate(sides) {
+  const mod = parseInt(document.getElementById('dmPrivateMod')?.value) || 0;
+  const roll = Math.ceil(Math.random() * sides);
+  const total = roll + mod;
+  const modStr = mod ? (mod >= 0 ? ' + ' + mod : ' − ' + Math.abs(mod)) : '';
+  const detail = '1d' + sides + ' [' + roll + ']' + modStr;
+  const timeStr = new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+
+  // Update inline result
+  const resRow = document.getElementById('dmPrivateResultRow');
+  const resVal = document.getElementById('dmPrivateResultVal');
+  const resDet = document.getElementById('dmPrivateResultDetail');
+  if (resRow) resRow.classList.add('visible');
+  if (resVal) resVal.textContent = total;
+  if (resDet) resDet.textContent = detail;
+
+  // Prepend to private log
+  _dmPrivateLog.unshift({ sides, roll, mod, total, detail, time: timeStr });
+  if (_dmPrivateLog.length > 20) _dmPrivateLog.pop();
+  const logEl = document.getElementById('dmPrivateLog');
+  if (logEl) {
+    logEl.innerHTML = _dmPrivateLog.map(function(e) {
+      return `<div class="dm-private-log-entry">
+        <span class="dm-private-result-detail">${e.detail} <span style="color:var(--text3);font-size:0.62rem">${e.time}</span></span>
+        <span class="dm-private-log-roll">${e.total}</span>
+      </div>`;
+    }).join('');
+  }
+}
 
 
 function saveDMNotes(charIdx, value) {
