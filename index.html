@@ -1339,6 +1339,79 @@ body.dm-galaxy-active .dice-fab-btn {
 .dm-private-log-roll { font-family:'Cinzel',serif; font-size:0.88rem; font-weight:700; color:var(--dm-accent2) }
 .dm-private-log-detail { color:var(--text3); font-size:0.68rem }
 
+/* ── DM Dice Pool Grid ── */
+.dm-private-roll-bar { overflow-y:auto }
+.dm-dice-type-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin:4px 0 6px;
+}
+.dm-dice-btn-wrap { position:relative }
+.dm-dice-type-btn {
+  width:100%; aspect-ratio:1; background:var(--bg3); border:1.5px solid var(--border);
+  border-radius:7px; cursor:pointer; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:2px; transition:all 0.12s;
+  padding:4px 2px; color:var(--text2);
+}
+.dm-dice-type-btn:hover { border-color:var(--dm-accent); color:var(--dm-accent); background:rgba(var(--dm-accent-rgb),0.1) }
+.dm-dice-type-btn.active {
+  background:var(--dm-accent); border-color:var(--dm-accent2);
+  color:#fff; box-shadow:0 1px 5px var(--shadow2);
+}
+.dm-die-badge {
+  position:absolute; top:-5px; right:-5px;
+  min-width:17px; height:17px; background:var(--dm-accent2); color:#fff;
+  border-radius:50%; font-family:'Cinzel',serif; font-size:0.6rem; font-weight:700;
+  display:none; align-items:center; justify-content:center; border:2px solid var(--bg2);
+}
+.dm-dice-pool-label {
+  font-family:'Cinzel',serif; font-size:0.56rem; letter-spacing:0.08em;
+  color:var(--text3); text-align:center; min-height:12px; margin:2px 0 6px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dm-dice-action-row { display:flex; gap:6px; margin-bottom:6px }
+.dm-dice-reset-btn {
+  flex:0 0 auto; background:var(--bg3); border:1px solid var(--border); border-radius:6px;
+  color:var(--text3); font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.06em;
+  font-weight:600; padding:6px 8px; cursor:pointer; transition:all 0.12s;
+}
+.dm-dice-reset-btn:hover { border-color:var(--border2); color:var(--text2) }
+.dm-dice-roll-btn {
+  flex:1; background:var(--dm-accent); border:1px solid var(--dm-accent2); border-radius:6px;
+  color:#fff; font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.08em;
+  font-weight:700; padding:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.dm-dice-roll-btn:hover { opacity:0.88 }
+.dm-dice-roll-btn:disabled { opacity:0.4; cursor:not-allowed }
+.dm-dice-result-strip {
+  display:none; justify-content:space-between; align-items:center;
+  padding:5px 0 2px; border-top:1px solid var(--border); margin-bottom:4px;
+}
+.dm-dice-result-strip.visible { display:flex }
+.dm-dice-result-label { font-size:0.58rem; color:var(--text3); font-family:'Cinzel',serif }
+.dm-dice-result-val {
+  font-family:'Cinzel',serif; font-size:1.4rem; font-weight:700; color:var(--dm-accent2);
+}
+.dm-preset-section { padding-top:6px; border-top:1px solid var(--border) }
+.dm-preset-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px }
+.dm-preset-label { font-size:0.58rem; color:var(--text3); font-family:'Cinzel',serif; letter-spacing:0.08em }
+.dm-preset-save-btn {
+  font-size:0.56rem; background:none; border:1px solid var(--border); border-radius:4px;
+  color:var(--text3); cursor:pointer; padding:2px 6px; font-family:'Cinzel',serif;
+}
+.dm-preset-save-btn:hover { border-color:var(--dm-accent); color:var(--dm-accent) }
+.dm-preset-chips { display:flex; flex-wrap:wrap; gap:4px }
+.dm-preset-chip {
+  display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:12px;
+  background:rgba(var(--dm-accent-rgb),0.12); border:1px solid rgba(var(--dm-accent-rgb),0.35); color:var(--dm-accent2);
+  font-size:0.66rem; font-family:'Cinzel',serif; cursor:pointer; transition:all 0.12s;
+}
+.dm-preset-chip:hover { background:var(--dm-accent); color:#fff; border-color:var(--dm-accent) }
+.dm-preset-chip-del {
+  background:none; border:none; color:currentColor; cursor:pointer; font-size:0.68rem;
+  padding:0 0 0 2px; opacity:0.6; line-height:1;
+}
+.dm-preset-chip-del:hover { opacity:1 }
+.dm-preset-empty { font-size:0.68rem; color:var(--text3); font-style:italic }
+
 /* ── Galaxy DM Theme ── */
 #nebula-bg, #star3, #ripple-canvas { display:none }
 @keyframes starDrift1  { from{transform:translateY(0)}   to{transform:translateY(-40px)} }
@@ -4689,6 +4762,7 @@ function renderDMView() {
   const area = document.getElementById('sheetArea');
   area.innerHTML = buildDMHTML();
   renderDMBank();
+  renderDMPresets();
   applyDMThemeToRoot();
 }
 
@@ -4786,20 +4860,77 @@ function buildDMHTML() {
       <div class="dm-private-roll-bar">
         <div class="dm-private-roll-hdr">
           <span class="dm-private-roll-label">DM Private Roll</span>
-          <div class="dm-dice-quick-row">
-            <button class="dm-die-btn" onclick="rollDMPrivate(4)">d4</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(6)">d6</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(8)">d8</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(10)">d10</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(12)">d12</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(20)">d20</button>
-            <button class="dm-die-btn" onclick="rollDMPrivate(100)">d100</button>
-            <input class="dm-die-mod-input" id="dmPrivateMod" type="number" value="0" placeholder="±mod" title="Modifier"/>
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="font-family:'Cinzel',serif;font-size:0.48rem;letter-spacing:0.1em;color:var(--text3);text-transform:uppercase">Mod</span>
+            <input class="dm-die-mod-input" id="dmPrivateMod" type="number" value="0" placeholder="±mod" title="Modifier" oninput="updateDMDicePoolDisplay()"/>
           </div>
         </div>
-        <div class="dm-private-result-row" id="dmPrivateResultRow">
-          <span class="dm-private-result-val" id="dmPrivateResultVal">—</span>
-          <span class="dm-private-result-detail" id="dmPrivateResultDetail"></span>
+        <div class="dm-dice-type-grid">
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(20)" id="dmDiceBtn20" title="Add D20">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,9 29,23 16,30 3,23 3,9"/></svg>
+              <span class="die-label">d20</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge20"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(12)" id="dmDiceBtn12" title="Add D12">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,11 24,28 8,28 3,11"/></svg>
+              <span class="die-label">d12</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge12"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(100)" id="dmDiceBtn100" title="Add D100">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="16" cy="16" r="13"/></svg>
+              <span class="die-label">d100</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge100"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(10)" id="dmDiceBtn10" title="Add D10">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,14 24,30 8,30 2,14"/></svg>
+              <span class="die-label">d10</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge10"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(8)" id="dmDiceBtn8" title="Add D8">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,16 16,30 2,16"/></svg>
+              <span class="die-label">d8</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge8"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(6)" id="dmDiceBtn6" title="Add D6">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="26" height="26" rx="4"/></svg>
+              <span class="die-label">d6</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge6"></span>
+          </div>
+          <div class="dm-dice-btn-wrap">
+            <button class="dm-dice-type-btn" onclick="clickDMDie(4)" id="dmDiceBtn4" title="Add D4">
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,3 30,29 2,29"/></svg>
+              <span class="die-label">d4</span>
+            </button>
+            <span class="dm-die-badge" id="dmDiceBadge4"></span>
+          </div>
+        </div>
+        <div class="dm-dice-pool-label" id="dmDicePoolLabel">Choose dice to roll</div>
+        <div class="dm-dice-action-row">
+          <button class="dm-dice-reset-btn" onclick="resetDMDicePool()">Reset</button>
+          <button class="dm-dice-roll-btn" id="dmDiceRollBtn" onclick="rollDMQuickDice()" disabled>Roll</button>
+        </div>
+        <div class="dm-dice-result-strip" id="dmDiceResultStrip">
+          <span class="dm-dice-result-label">Result</span>
+          <span class="dm-dice-result-val" id="dmDiceResultVal">—</span>
+        </div>
+        <div class="dm-preset-section">
+          <div class="dm-preset-hdr">
+            <span class="dm-preset-label">Presets</span>
+            <button class="dm-preset-save-btn" onclick="saveDMPreset()">+ Save</button>
+          </div>
+          <div class="dm-preset-chips" id="dmPresetChips"><span class="dm-preset-empty">No presets saved</span></div>
         </div>
       </div>
       <div class="dm-private-log" id="dmPrivateLog"></div>
@@ -4842,25 +4973,77 @@ function dmUpdateDMLog() {
 function toggleDMCondition(charIdx, condId) { toggleCharCondition(charIdx, condId); }
 
 let _dmPrivateLog = [];
+let _dmDicePool = {};
+let _dmPresets = (function() {
+  try { return JSON.parse(localStorage.getItem('chronicle_dm_presets') || '[]'); } catch(e) { return []; }
+})();
+const DM_DICE_SIDES = [20, 12, 100, 10, 8, 6, 4];
 
-function rollDMPrivate(sides) {
+function clickDMDie(sides) {
+  _dmDicePool[sides] = (_dmDicePool[sides] || 0) + 1;
+  updateDMDicePoolDisplay();
+}
+
+function resetDMDicePool() {
+  _dmDicePool = {};
+  updateDMDicePoolDisplay();
+  const strip = document.getElementById('dmDiceResultStrip');
+  if (strip) strip.classList.remove('visible');
+}
+
+function updateDMDicePoolDisplay() {
+  const pool = DM_DICE_SIDES.filter(function(s) { return (_dmDicePool[s] || 0) > 0; });
+  DM_DICE_SIDES.forEach(function(s) {
+    const badge = document.getElementById('dmDiceBadge' + s);
+    const btn   = document.getElementById('dmDiceBtn' + s);
+    const count = _dmDicePool[s] || 0;
+    if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'flex' : 'none'; }
+    if (btn)   { btn.classList.toggle('active', count > 0); }
+  });
+  const mod     = parseInt(document.getElementById('dmPrivateMod')?.value) || 0;
+  const poolStr = pool.length
+    ? pool.map(function(s) { return (_dmDicePool[s]) + 'd' + s; }).join(' + ')
+    : 'Choose dice to roll';
+  const modStr  = mod ? (mod > 0 ? ' + ' + mod : ' − ' + Math.abs(mod)) : '';
+  const label   = document.getElementById('dmDicePoolLabel');
+  if (label) label.textContent = pool.length ? poolStr + modStr : 'Choose dice to roll';
+  const rollBtn = document.getElementById('dmDiceRollBtn');
+  if (rollBtn) {
+    rollBtn.disabled = pool.length === 0;
+    rollBtn.textContent = pool.length
+      ? 'Roll ' + pool.map(function(s) { return (_dmDicePool[s]) + 'D' + s; }).join('+') + (modStr || '')
+      : 'Roll';
+  }
+}
+
+function rollDMQuickDice() {
+  const pool = DM_DICE_SIDES.filter(function(s) { return (_dmDicePool[s] || 0) > 0; });
+  if (!pool.length) return;
   const mod = parseInt(document.getElementById('dmPrivateMod')?.value) || 0;
-  const roll = Math.ceil(Math.random() * sides);
-  const total = roll + mod;
-  const modStr = mod ? (mod >= 0 ? ' + ' + mod : ' − ' + Math.abs(mod)) : '';
-  const detail = '1d' + sides + ' [' + roll + ']' + modStr;
+  let total = mod;
+  const parts = [];
+  pool.forEach(function(sides) {
+    const count = _dmDicePool[sides];
+    const rolls = [];
+    for (let i = 0; i < count; i++) {
+      const r = Math.ceil(Math.random() * sides);
+      rolls.push(r);
+      total += r;
+    }
+    parts.push(count + 'D' + sides + '[' + rolls.join('+') + ']');
+  });
+  if (mod) parts.push((mod > 0 ? '+' : '') + mod);
+  const detail  = parts.join(' ') + ' = ' + total;
   const timeStr = new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 
-  // Update inline result
-  const resRow = document.getElementById('dmPrivateResultRow');
-  const resVal = document.getElementById('dmPrivateResultVal');
-  const resDet = document.getElementById('dmPrivateResultDetail');
-  if (resRow) resRow.classList.add('visible');
-  if (resVal) resVal.textContent = total;
-  if (resDet) resDet.textContent = detail;
+  // Show result strip
+  const strip = document.getElementById('dmDiceResultStrip');
+  const val   = document.getElementById('dmDiceResultVal');
+  if (strip) strip.classList.add('visible');
+  if (val)   val.textContent = total;
 
   // Prepend to private log
-  _dmPrivateLog.unshift({ sides, roll, mod, total, detail, time: timeStr });
+  _dmPrivateLog.unshift({ detail, total, time: timeStr });
   if (_dmPrivateLog.length > 20) _dmPrivateLog.pop();
   const logEl = document.getElementById('dmPrivateLog');
   if (logEl) {
@@ -4871,6 +5054,51 @@ function rollDMPrivate(sides) {
       </div>`;
     }).join('');
   }
+}
+
+// Keep rollDMPrivate for any existing calls — now adds to pool instead of rolling immediately
+function rollDMPrivate(sides) { clickDMDie(sides); }
+
+function saveDMPreset() {
+  const pool = DM_DICE_SIDES.filter(function(s) { return (_dmDicePool[s] || 0) > 0; });
+  if (!pool.length) return;
+  const label = pool.map(function(s) { return (_dmDicePool[s] > 1 ? _dmDicePool[s] : '') + 'd' + s; }).join('+');
+  const mod   = parseInt(document.getElementById('dmPrivateMod')?.value) || 0;
+  const name  = label + (mod ? (mod > 0 ? '+' + mod : mod) : '');
+  if (_dmPresets.find(function(p) { return p.name === name; })) return;
+  _dmPresets.push({ name: name, pool: Object.assign({}, _dmDicePool), mod: mod });
+  try { localStorage.setItem('chronicle_dm_presets', JSON.stringify(_dmPresets)); } catch(e) {}
+  renderDMPresets();
+}
+
+function deleteDMPreset(presetName) {
+  _dmPresets = _dmPresets.filter(function(p) { return p.name !== presetName; });
+  try { localStorage.setItem('chronicle_dm_presets', JSON.stringify(_dmPresets)); } catch(e) {}
+  renderDMPresets();
+}
+
+function loadDMPreset(presetName) {
+  const preset = _dmPresets.find(function(p) { return p.name === presetName; });
+  if (!preset) return;
+  _dmDicePool = Object.assign({}, preset.pool);
+  const modEl = document.getElementById('dmPrivateMod');
+  if (modEl) modEl.value = preset.mod || 0;
+  updateDMDicePoolDisplay();
+}
+
+function renderDMPresets() {
+  const el = document.getElementById('dmPresetChips');
+  if (!el) return;
+  if (!_dmPresets.length) {
+    el.innerHTML = '<span class="dm-preset-empty">No presets saved</span>';
+    return;
+  }
+  el.innerHTML = _dmPresets.map(function(p) {
+    return `<span class="dm-preset-chip" onclick="loadDMPreset('${escHtml(p.name)}')" title="Load ${escHtml(p.name)}">`
+      + escHtml(p.name)
+      + `<button class="dm-preset-chip-del" onclick="event.stopPropagation();deleteDMPreset('${escHtml(p.name)}')" title="Delete">✕</button>`
+      + `</span>`;
+  }).join('');
 }
 
 
