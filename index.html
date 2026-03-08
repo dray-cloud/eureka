@@ -201,6 +201,24 @@ body {
 .save-status { font-size:0.7rem; color:var(--text3); font-family:'Cinzel',serif; letter-spacing:0.05em }
 .save-status.saved   { color:var(--green2) }
 .save-status.unsaved { color:var(--accent2) }
+.btn-backup { background:#f0f4ff; color:#4a6fa5; border-color:rgba(74,111,165,0.3) }
+.btn-backup:hover { background:#4a6fa5; color:#fff }
+body.dark-mode .btn-backup { background:rgba(74,111,165,0.12) }
+.info-btn {
+  width:16px; height:16px; border-radius:50%; border:1.5px solid currentColor;
+  background:none; font-size:0.58rem; font-weight:700; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--text3); line-height:1; padding:0; flex-shrink:0; transition:all 0.12s;
+}
+.info-btn:hover { color:var(--accent); border-color:var(--accent) }
+.bk-icon { font-size:2rem; text-align:center; margin-bottom:10px }
+.bk-desc { font-size:0.83rem; color:var(--text2); line-height:1.65; margin-bottom:12px }
+.bk-list { list-style:none; padding:0; margin:0 0 12px; display:flex; flex-direction:column; gap:5px }
+.bk-list li { font-size:0.8rem; color:var(--text2); display:flex; gap:8px; align-items:flex-start }
+.bk-list li::before { content:'•'; color:var(--accent); font-weight:700; flex-shrink:0 }
+.bk-actions { display:flex; gap:8px; margin-top:14px }
+.bk-warn { background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.25); border-radius:6px; padding:9px 12px; margin-bottom:12px; font-size:0.79rem; color:var(--red2); line-height:1.5 }
+.bk-note { background:var(--bg3); border-radius:6px; padding:9px 12px; margin-bottom:12px; font-size:0.77rem; color:var(--text3); line-height:1.5 }
 .share-url-box {
   background:var(--panel); border:1px solid var(--border); border-radius:3px;
   color:var(--text3); font-size:0.75rem; padding:3px 8px; flex:1; min-width:0;
@@ -1247,6 +1265,13 @@ body.dm-galaxy-active .dice-fab-btn {
   cursor:pointer; transition:all 0.15s;
 }
 .dm-bank-add-btn:hover { background:rgba(255,255,255,0.28); }
+.dm-bank-export-btn {
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.28);
+  color:rgba(255,255,255,0.72); border-radius:3px; padding:2px 9px;
+  font-family:'Cinzel',serif; font-size:0.52rem; letter-spacing:0.06em;
+  cursor:pointer; transition:all 0.15s;
+}
+.dm-bank-export-btn:hover { background:rgba(255,255,255,0.18); color:#fff; }
 .dm-bank-list { padding:8px 10px; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; align-items:start }
 .dm-bank-empty { padding:12px 14px; color:var(--text3); font-size:0.78rem; font-style:italic; text-align:center; grid-column:1/-1 }
 .dm-bank-item {
@@ -1580,7 +1605,13 @@ body.dm-galaxy-active #darkModeBtn { display:none }
 <!-- SAVE BAR -->
 <div class="save-bar" id="saveBar">
   <button class="btn btn-green btn-sm" onclick="saveAll()">💾 Save</button>
+  <button class="info-btn" onclick="showSaveInfo()" title="What does Save do?">i</button>
   <span class="save-status" id="saveStatus">No saved data</span>
+  <button class="btn btn-sm btn-backup" onclick="downloadBackup()">⬇ Backup</button>
+  <button class="info-btn" onclick="showBackupInfo()" title="About Download Backup">i</button>
+  <button class="btn btn-sm btn-backup" onclick="importBackup()">⬆ Import</button>
+  <button class="info-btn" onclick="showImportInfo()" title="About Import Backup">i</button>
+  <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="handleImportFile(event)"/>
   <button class="btn btn-sm" id="goLiveBtn" onclick="goLive()" style="background:var(--bg3);color:var(--text2);border-color:var(--border)" title="Start a live session — all changes sync in real time">⚪ Go Live</button>
   <button class="btn btn-sm" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark / light mode" style="font-size:0.85rem;padding:3px 9px">🌙</button>
   <button class="btn btn-red btn-sm" onclick="clearSave()" style="margin-left:auto">🗑 Clear Save</button>
@@ -1615,58 +1646,51 @@ body.dm-galaxy-active #darkModeBtn { display:none }
     </div>
     <div class="dice-popup-body">
       <div class="dice-type-grid" id="diceTypeGrid">
-        <!-- D20 hexagon -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(20)" id="diceBtn20" title="Add D20">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,9 29,23 16,30 3,23 3,9"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 28,9 28,23 16,30 4,23 4,9"/><polygon points="16,9 22,13 22,21 16,25 10,21 10,13"/><line x1="16" y1="2" x2="16" y2="9"/><line x1="28" y1="9" x2="22" y2="13"/><line x1="28" y1="23" x2="22" y2="21"/><line x1="16" y1="30" x2="16" y2="25"/><line x1="4" y1="23" x2="10" y2="21"/><line x1="4" y1="9" x2="10" y2="13"/></svg>
             <span class="die-label">d20</span>
           </button>
           <span class="die-badge" id="diceBadge20"></span>
         </div>
-        <!-- D12 pentagon -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(12)" id="diceBtn12" title="Add D12">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,11 24,28 8,28 3,11"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,11 24,28 8,28 3,11"/><polygon points="16,9 23,14 20,23 12,23 9,14"/><line x1="16" y1="2" x2="16" y2="9"/><line x1="29" y1="11" x2="23" y2="14"/><line x1="24" y1="28" x2="20" y2="23"/><line x1="8" y1="28" x2="12" y2="23"/><line x1="3" y1="11" x2="9" y2="14"/></svg>
             <span class="die-label">d12</span>
           </button>
           <span class="die-badge" id="diceBadge12"></span>
         </div>
-        <!-- D100 circle -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(100)" id="diceBtn100" title="Add D100">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="16" cy="16" r="13"/></svg>
+            <svg class="die-svg" viewBox="0 0 36 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 21,13 17,30 3,30 0,13"/><polygon points="18,2 29,13 25,30 11,30 8,13"/></svg>
             <span class="die-label">d100</span>
           </button>
           <span class="die-badge" id="diceBadge100"></span>
         </div>
-        <!-- D10 elongated diamond -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(10)" id="diceBtn10" title="Add D10">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,14 24,30 8,30 2,14"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,14 24,30 8,30 3,14"/><line x1="3" y1="14" x2="29" y2="14"/></svg>
             <span class="die-label">d10</span>
           </button>
           <span class="die-badge" id="diceBadge10"></span>
         </div>
-        <!-- D8 diamond -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(8)" id="diceBtn8" title="Add D8">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,16 16,30 2,16"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,16 16,30 2,16"/><line x1="2" y1="16" x2="30" y2="16"/><line x1="16" y1="2" x2="16" y2="30"/></svg>
             <span class="die-label">d8</span>
           </button>
           <span class="die-badge" id="diceBadge8"></span>
         </div>
-        <!-- D6 square -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(6)" id="diceBtn6" title="Add D6">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="26" height="26" rx="4"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="12" width="16" height="16" rx="1"/><polyline points="3,12 11,5 27,5 27,21 19,28"/><line x1="27" y1="5" x2="19" y2="12"/></svg>
             <span class="die-label">d6</span>
           </button>
           <span class="die-badge" id="diceBadge6"></span>
         </div>
-        <!-- D4 triangle -->
         <div class="dice-btn-wrap">
           <button class="dice-type-btn" onclick="clickDie(4)" id="diceBtn4" title="Add D4">
-            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,3 30,29 2,29"/></svg>
+            <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,28 2,28"/><polygon points="16,20 22,12 10,12"/></svg>
             <span class="die-label">d4</span>
           </button>
           <span class="die-badge" id="diceBadge4"></span>
@@ -1695,7 +1719,7 @@ body.dm-galaxy-active #darkModeBtn { display:none }
     </div>
   </div>
   <button class="dice-fab-btn" id="diceFabBtn" onclick="toggleDicePanel()" title="Quick dice roller">
-    <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="16,2 29,9 29,23 16,30 3,23 3,9"/></svg>
+    <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 28,9 28,23 16,30 4,23 4,9"/><polygon points="16,9 22,13 22,21 16,25 10,21 10,13"/><line x1="16" y1="2" x2="16" y2="9"/><line x1="28" y1="9" x2="22" y2="13"/><line x1="28" y1="23" x2="22" y2="21"/><line x1="16" y1="30" x2="16" y2="25"/><line x1="4" y1="23" x2="10" y2="21"/><line x1="4" y1="9" x2="10" y2="13"/></svg>
   </button>
 </div>
 
@@ -4403,6 +4427,161 @@ function _executeClearSave() {
   showSaveStatus('Save cleared — defaults restored', false);
 }
 
+// ================================================================
+// BACKUP — Download & Import
+// ================================================================
+function showSaveInfo() {
+  openModal('💾 About the Save Button', `
+    <div class="bk-desc">The Save button writes your data to multiple places at once:</div>
+    <ul class="bk-list">
+      <li><strong>Browser storage</strong> — keeps your data on this device across sessions, even after closing the tab</li>
+      <li><strong>Page URL</strong> — updates the link in your browser bar so your current state is always reflected</li>
+      <li><strong>Firebase</strong> — if you're in a live session (Go Live), syncs to the cloud so other players see changes instantly</li>
+    </ul>
+    <div class="bk-note">⚡ <strong>Auto-save:</strong> Most changes save automatically after 2 seconds. The Save button forces an immediate save right now.</div>
+    <button class="btn btn-green" style="width:100%;margin-top:4px" onclick="closeModal()">Got it</button>
+  `);
+}
+
+function showBackupInfo() {
+  openModal('⬇ About Download Backup', `
+    <div class="bk-desc">Download Backup saves a complete snapshot of all your character data as a <strong>.json file</strong> on your device.</div>
+    <ul class="bk-list">
+      <li>The file will be named <strong>chronicle-backup-YYYY-MM-DD.json</strong></li>
+      <li>Contains everything: characters, skills, titles, bank items, and session notes</li>
+      <li>Can be restored at any time using the Import Backup button</li>
+    </ul>
+    <div class="bk-note">💡 <strong>Tip:</strong> Download a backup after each major session. Store it somewhere safe like Google Drive or your Desktop.</div>
+    <button class="btn btn-green" style="width:100%;margin-top:4px" onclick="closeModal()">Got it</button>
+  `);
+}
+
+function showImportInfo() {
+  openModal('⬆ About Import Backup', `
+    <div class="bk-desc">Import Backup loads a previously downloaded <strong>.json backup file</strong> and restores all your character data from it.</div>
+    <ul class="bk-list">
+      <li>You'll be asked to select a backup file from your device</li>
+      <li>A confirmation step appears before anything is changed</li>
+      <li>After import, your current data is replaced with the backup</li>
+    </ul>
+    <div class="bk-warn">⚠️ This replaces all current data. Save first if you want to keep what you have before importing.</div>
+    <button class="btn btn-green" style="width:100%;margin-top:4px" onclick="closeModal()">Got it</button>
+  `);
+}
+
+function downloadBackup() {
+  openModal('⬇ Download Backup', `
+    <div class="bk-icon">📦</div>
+    <div class="bk-desc">This will download a complete backup of all your character data as a <strong>.json file</strong>.</div>
+    <ul class="bk-list">
+      <li>All characters, skills, titles, and bank items</li>
+      <li>Session notes and roll presets</li>
+      <li>File name will include today's date</li>
+    </ul>
+    <div class="bk-note">💡 Store this file somewhere safe — Google Drive, Desktop, or a USB drive. You can restore it any time with Import Backup.</div>
+    <div class="bk-actions">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" style="flex:2" onclick="confirmDownloadBackup()">⬇ Download Now</button>
+    </div>
+  `);
+}
+
+function confirmDownloadBackup() {
+  try {
+    const data = JSON.stringify(getSerializableState(), null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = 'chronicle-backup-' + dateStr + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    closeModal();
+    showSaveStatus('✓ Backup downloaded', true);
+  } catch(e) {
+    closeModal();
+    showSaveStatus('Backup failed: ' + e.message, false);
+  }
+}
+
+function importBackup() {
+  openModal('⬆ Import Backup', `
+    <div class="bk-icon">📂</div>
+    <div class="bk-desc">Select a <strong>chronicle-backup-*.json</strong> file to restore your character data from a previous download.</div>
+    <div class="bk-warn">⚠️ <strong>Warning:</strong> This will replace ALL current character data — characters, skills, titles, bank items, and notes. This cannot be undone.</div>
+    <div class="bk-note">💡 Click <strong>Save</strong> first if you want to preserve your current data before importing.</div>
+    <div class="bk-actions">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" style="flex:2" onclick="closeModal();document.getElementById('backupFileInput').click()">📂 Choose File</button>
+    </div>
+  `);
+}
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.characters || !Array.isArray(data.characters)) {
+        openModal('Import Failed', `
+          <div class="bk-warn">⚠️ This file doesn't appear to be a valid Chronicle backup.</div>
+          <div class="bk-desc">Make sure you're selecting a file named <strong>chronicle-backup-*.json</strong> that was downloaded from this app.</div>
+          <button class="btn btn-green" style="width:100%" onclick="closeModal()">OK</button>
+        `);
+        return;
+      }
+      const dateMatch = file.name.match(/\d{4}-\d{2}-\d{2}/);
+      const dateStr = dateMatch ? dateMatch[0] : 'unknown date';
+      window._pendingImportData = data;
+      openModal('✓ Confirm Import', `
+        <div class="bk-icon">📋</div>
+        <div class="bk-desc">Ready to restore from <strong>${escHtml(file.name)}</strong>.</div>
+        <ul class="bk-list">
+          <li>${data.characters.length} character(s) found in this backup</li>
+          <li>Backup date: <strong>${escHtml(dateStr)}</strong></li>
+          <li>All current data will be replaced</li>
+        </ul>
+        <div class="bk-warn">⚠️ This will overwrite everything. Are you sure you want to continue?</div>
+        <div class="bk-actions">
+          <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-green" style="flex:2" onclick="executeImportBackup()">✓ Import Now</button>
+        </div>
+      `);
+    } catch(err) {
+      openModal('Import Failed', `
+        <div class="bk-warn">⚠️ Could not read this file. It may be corrupted or in the wrong format.</div>
+        <div class="bk-desc">Make sure you're selecting a <strong>.json</strong> file downloaded from Chronicle Sheets.</div>
+        <button class="btn btn-green" style="width:100%" onclick="closeModal()">OK</button>
+      `);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function executeImportBackup() {
+  const data = window._pendingImportData;
+  if (!data) { closeModal(); return; }
+  window._pendingImportData = null;
+  try {
+    applyLoadedState(data);
+    characters.forEach(ch => recalcVitals(ch));
+    renderAllTabs();
+    renderSheet();
+    saveAll();
+    closeModal();
+    showSaveStatus('✓ Backup imported successfully', true);
+  } catch(err) {
+    closeModal();
+    showSaveStatus('Import failed: ' + err.message, false);
+  }
+}
+
 // Auto-save on any input change (debounced)
 let _autoSaveTimer = null;
 // ================================================================
@@ -4851,7 +5030,10 @@ function buildDMHTML() {
       <div class="dm-bank-section" id="dmBankSection">
         <div class="dm-bank-header">
           <span class="dm-bank-title">Skill Bank</span>
-          <button class="dm-bank-add-btn" onclick="openDMBankModal()">+ Bank Item</button>
+          <div style="display:flex;gap:5px">
+            <button class="dm-bank-export-btn" onclick="exportBankToCSV()">⬇ CSV</button>
+            <button class="dm-bank-add-btn" onclick="openDMBankModal()">+ Bank Item</button>
+          </div>
         </div>
         <div class="dm-bank-list" id="dmBankList"></div>
       </div>
@@ -4868,49 +5050,49 @@ function buildDMHTML() {
         <div class="dm-dice-type-grid">
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(20)" id="dmDiceBtn20" title="Add D20">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,9 29,23 16,30 3,23 3,9"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 28,9 28,23 16,30 4,23 4,9"/><polygon points="16,9 22,13 22,21 16,25 10,21 10,13"/><line x1="16" y1="2" x2="16" y2="9"/><line x1="28" y1="9" x2="22" y2="13"/><line x1="28" y1="23" x2="22" y2="21"/><line x1="16" y1="30" x2="16" y2="25"/><line x1="4" y1="23" x2="10" y2="21"/><line x1="4" y1="9" x2="10" y2="13"/></svg>
               <span class="die-label">d20</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge20"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(12)" id="dmDiceBtn12" title="Add D12">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,11 24,28 8,28 3,11"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,11 24,28 8,28 3,11"/><polygon points="16,9 23,14 20,23 12,23 9,14"/><line x1="16" y1="2" x2="16" y2="9"/><line x1="29" y1="11" x2="23" y2="14"/><line x1="24" y1="28" x2="20" y2="23"/><line x1="8" y1="28" x2="12" y2="23"/><line x1="3" y1="11" x2="9" y2="14"/></svg>
               <span class="die-label">d12</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge12"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(100)" id="dmDiceBtn100" title="Add D100">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="16" cy="16" r="13"/></svg>
+              <svg class="die-svg" viewBox="0 0 36 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="10,2 21,13 17,30 3,30 0,13"/><polygon points="18,2 29,13 25,30 11,30 8,13"/></svg>
               <span class="die-label">d100</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge100"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(10)" id="dmDiceBtn10" title="Add D10">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,14 24,30 8,30 2,14"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 29,14 24,30 8,30 3,14"/><line x1="3" y1="14" x2="29" y2="14"/></svg>
               <span class="die-label">d10</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge10"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(8)" id="dmDiceBtn8" title="Add D8">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,16 16,30 2,16"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,16 16,30 2,16"/><line x1="2" y1="16" x2="30" y2="16"/><line x1="16" y1="2" x2="16" y2="30"/></svg>
               <span class="die-label">d8</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge8"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(6)" id="dmDiceBtn6" title="Add D6">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="26" height="26" rx="4"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="12" width="16" height="16" rx="1"/><polyline points="3,12 11,5 27,5 27,21 19,28"/><line x1="27" y1="5" x2="19" y2="12"/></svg>
               <span class="die-label">d6</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge6"></span>
           </div>
           <div class="dm-dice-btn-wrap">
             <button class="dm-dice-type-btn" onclick="clickDMDie(4)" id="dmDiceBtn4" title="Add D4">
-              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,3 30,29 2,29"/></svg>
+              <svg class="die-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><polygon points="16,2 30,28 2,28"/><polygon points="16,20 22,12 10,12"/></svg>
               <span class="die-label">d4</span>
             </button>
             <span class="dm-die-badge" id="dmDiceBadge4"></span>
@@ -5433,6 +5615,112 @@ function grantBankItem(bankIdx, charIdx) {
   renderDMBank();
   scheduleAutoSave();
   if (_firebaseDb && _roomId) pushCharactersToFirebase();
+}
+
+// ================================================================
+// BANK CSV EXPORT
+// ================================================================
+function exportBankToCSV() {
+  if (!dmBank.length) {
+    openModal('Export Bank', `
+      <div class="bk-desc">The bank is empty — add some items first before exporting.</div>
+      <button class="btn btn-green" style="width:100%" onclick="closeModal()">OK</button>
+    `);
+    return;
+  }
+
+  const colNames = [
+    'Name', 'Category', 'Level Requirement', 'Is Attack', 'Is Growth', 'Is Soul Bound',
+    'Detail / Cost Line', 'Description', 'Attack Dice', 'Attack Count', 'Attack Stat Modifier',
+    'Resource Cost', 'Resource Cost Type', 'Status', 'DM Notes'
+  ];
+
+  openModal('⬇ Export Bank to CSV', `
+    <div class="bk-icon">📊</div>
+    <div class="bk-desc">Export all <strong>${dmBank.length} bank item(s)</strong> as a CSV file — open it in Excel, Google Sheets, or any spreadsheet app to build your rule book reference.</div>
+    <div style="margin:0 0 10px">
+      <div style="font-family:'Cinzel',serif;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Columns included</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${colNames.map(c => `<span style="font-size:0.68rem;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--text2)">${c}</span>`).join('')}
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2);cursor:pointer;margin-bottom:14px">
+      <input type="checkbox" id="csvIncludeDMNotes" checked/>
+      Include DM Notes &nbsp;<span style="color:var(--text3);font-size:0.75rem">(uncheck to omit private notes — useful for sharing)</span>
+    </label>
+    <div class="bk-actions">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" style="flex:2" onclick="confirmExportBankToCSV()">⬇ Download CSV</button>
+    </div>
+  `);
+}
+
+function confirmExportBankToCSV() {
+  const includeDMNotes = !!(document.getElementById('csvIncludeDMNotes') || {}).checked;
+
+  const DICE_LABEL = { 4:'d4', 6:'d6', 8:'d8', 10:'d10', 12:'d12', 20:'d20', 100:'d100' };
+  const CAT_LABEL  = {
+    systemSkill:'System Skill', classSkill:'Class Skill', raceSkill:'Race Skill',
+    profSkill:'Profession Skill', title:'Title', general:'General Note'
+  };
+
+  // Wrap value safely for CSV: quote if contains comma, quote, or newline
+  function cv(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v).replace(/\r?\n/g, ' ');
+    return (s.includes(',') || s.includes('"')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  const headers = [
+    'Name', 'Category', 'Level Requirement',
+    'Is Attack', 'Is Growth', 'Is Soul Bound',
+    'Detail / Cost Line', 'Description',
+    'Attack Dice', 'Attack Count', 'Attack Stat Modifier',
+    'Resource Cost', 'Resource Cost Type',
+    'Status'
+  ];
+  if (includeDMNotes) headers.push('DM Notes');
+
+  const rows = dmBank.map(function(item) {
+    const grantedNames = (item.grantedTo || []).map(function(g) { return g.name; });
+    const status = grantedNames.length ? 'Granted to: ' + grantedNames.join('; ') : 'Banked';
+    const diceLabel = DICE_LABEL[item.attackDice] || (item.attackDice ? 'd' + item.attackDice : '');
+
+    const row = [
+      item.name        || '',
+      CAT_LABEL[item.category] || item.category || '',
+      item.tier        || '',
+      item.isAttack    ? 'Yes' : 'No',
+      item.isGrowth    ? 'Yes' : 'No',
+      item.isSoulBound ? 'Yes' : 'No',
+      item.detail      || '',
+      item.desc        || '',
+      item.isAttack    ? diceLabel                                        : '',
+      item.isAttack    ? (item.attackCount || 1)                          : '',
+      item.isAttack    ? (item.attackStat || '')                          : '',
+      item.isAttack && item.attackCost > 0         ? item.attackCost      : '',
+      item.isAttack && item.attackCostType && item.attackCostType !== 'none'
+                       ? item.attackCostType.toUpperCase()               : '',
+      status
+    ];
+    if (includeDMNotes) row.push(item.dmNotes || '');
+    return row.map(cv).join(',');
+  });
+
+  const csv = [headers.map(cv).join(',')].concat(rows).join('\r\n');
+  // BOM prefix so Excel opens UTF-8 correctly without garbled characters
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href     = url;
+  a.download = 'chronicle-bank-' + dateStr + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeModal();
+  showSaveStatus('✓ Bank exported — ' + dmBank.length + ' item(s)', true);
 }
 
 // ================================================================
