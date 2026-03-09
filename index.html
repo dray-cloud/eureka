@@ -2273,6 +2273,11 @@ function renderAllTabs() {
 }
 
 function renderSheet() {
+  // Preserve active tab and scroll position across full re-renders
+  const activePane = document.querySelector('.tab-pane.active');
+  const savedTab = activePane ? activePane.id.replace('tab-', '') : null;
+  const savedScroll = window.pageYOffset;
+
   if (isDMView) { renderDMView(); return; }
   clearDMThemeFromRoot();
   const ch = characters[activeCharIdx];
@@ -2281,6 +2286,14 @@ function renderSheet() {
   // Apply character's chosen theme
   applyTheme(ch.theme || 'theme-crimson');
   bindSheetEvents(ch);
+
+  // Restore active tab (Titles is already the default, skip if we were there)
+  if (savedTab && savedTab !== 'titles') {
+    const tabBtn = document.querySelector('.tab-btn[onclick*="\'' + savedTab + '\'"]');
+    if (tabBtn) switchTab(savedTab, tabBtn);
+  }
+  // Restore scroll position after browser paint
+  if (savedScroll > 0) requestAnimationFrame(function() { window.scrollTo(0, savedScroll); });
 }
 
 // ================================================================
@@ -2490,6 +2503,7 @@ function buildSheetHTML(ch) {
       <div class="section-title" style="margin:8px 0">General Resources</div>
       <table style="width:100%;border-collapse:collapse;font-size:0.83rem" id="generalTable">
         <thead><tr>
+          <th style="width:18px;padding:4px 2px;border-bottom:1px solid var(--border)"></th>
           <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Item</th>
           <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Qty</th>
           <th style="font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.1em;color:var(--gold-dim);text-align:left;padding:4px 5px;border-bottom:1px solid var(--border)">Notes</th>
@@ -2665,7 +2679,7 @@ function rollStat(stat) {
   const mod = getMod(stat, ch);
   const roll = Math.ceil(Math.random()*100);
   const total = roll+mod;
-  addLog(`${stat} Check`, `Rolled ${roll} ${mod>=0?'+'+mod:mod} =`, total, roll);
+  addLog(`${stat} Check`, `${roll}(d100)${mod>=0?'+'+mod:mod}=`, total, roll);
 }
 
 // ================================================================
@@ -2863,7 +2877,7 @@ function buildSkillCard(skill, listKey) {
   // Use single-quote wrapping for string IDs so onclick attrs don't break (JSON.stringify adds double quotes which close the HTML attr)
   const safeId = (typeof skill.id === 'string') ? ("'" + skill.id + "'") : skill.id;
   const attackBtns = skill.isAttack ? `
-    <button class="to-hit-btn" onclick="rollToHit('${escHtml(skill.name)}')">To Hit</button>
+    <button class="to-hit-btn" onclick="rollToHit(${safeId},'${listKey}')">To Hit</button>
     <button class="attack-btn" onclick="rollSkillAttack(${safeId},'${listKey}')">Roll DMG</button>` : '';
   const growBtn = skill.isGrowth ? `<button class="btn btn-green btn-xs" onclick="growSkill(${safeId},'${listKey}')">Grow</button>` : '';
 
@@ -3192,10 +3206,28 @@ function growSkill(id, listKey) {
   const skill = ch[listKey].find(s=>s.id===id);
   if (!skill) return;
   const safeId = (typeof id === 'string') ? ("'" + id + "'") : id;
+  const atkFields = skill.isAttack ? `
+    <div style="margin:10px 0 4px;font-family:'Cinzel',serif;font-size:0.62rem;letter-spacing:0.1em;color:var(--gold-dim);text-transform:uppercase">Attack Properties</div>
+    <div class="form-row" style="margin-bottom:8px">
+      <div class="form-field"><label class="form-label">Dmg Dice</label>
+        <select class="form-select" id="gAtkDice">${[4,6,8,10,12,20,100].map(d=>`<option value="${d}" ${(skill.attackDice||20)===d?'selected':''}>D${d}</option>`).join('')}</select>
+      </div>
+      <div class="form-field"><label class="form-label"># Dice</label>
+        <input class="form-input" id="gAtkCount" type="number" value="${skill.attackCount||1}" min="1"/>
+      </div>
+      <div class="form-field"><label class="form-label">Cost</label>
+        <input class="form-input" id="gAtkCost" type="number" value="${skill.attackCost||0}" min="0"/>
+      </div>
+      <div class="form-field"><label class="form-label">Cost Type</label>
+        <select class="form-select" id="gAtkCostType">${['mp','hp','none'].map(t=>`<option value="${t}" ${(skill.attackCostType||'none')===t?'selected':''}>${t.toUpperCase()}</option>`).join('')}</select>
+      </div>
+    </div>` : '';
   openModal(`Grow: [${skill.name}]`, `
     <div style="margin-bottom:10px;color:var(--text3);font-size:0.83rem">Record a growth event. Changes are saved to the Growth Log.</div>
+    <div class="form-field" style="margin-bottom:8px"><label class="form-label">Skill Name (rename on growth)</label><input class="form-input" id="gName" value="${escHtml(skill.name)}"/></div>
     <div class="form-field" style="margin-bottom:8px"><label class="form-label">Updated Detail</label><input class="form-input" id="gDetail" value="${escHtml(skill.detail||'')}"/></div>
     <div class="form-field" style="margin-bottom:8px"><label class="form-label">Updated Description</label><textarea class="form-textarea" id="gDesc">${escHtml(skill.desc||'')}</textarea></div>
+    ${atkFields}
     <div class="form-field" style="margin-bottom:12px"><label class="form-label">What Changed?</label><input class="form-input" id="gNotes" placeholder="e.g. Unlocked secondary fire..."/></div>
     <button class="btn btn-green" style="width:100%" onclick="commitGrowth(${safeId},'${listKey}')">Commit Growth</button>
   `);
@@ -3205,35 +3237,168 @@ function commitGrowth(id, listKey) {
   const ch = characters[activeCharIdx];
   const skill = ch[listKey].find(s=>s.id===id);
   if (!skill) return;
-  const event = {skillName:skill.name, date:new Date().toLocaleString(), oldDetail:skill.detail, newDetail:getVal('gDetail'), notes:getVal('gNotes')};
-  ch.growthLog.push(event);
-  skill.detail = event.newDetail;
+  const previousName = skill.name;
+  const newName = getVal('gName').trim() || skill.name;
+  // Capture attack property changes if applicable
+  let attackChanges = null;
+  if (skill.isAttack) {
+    const oldAtk = { dice: skill.attackDice||20, count: skill.attackCount||1, cost: skill.attackCost||0, costType: skill.attackCostType||'none' };
+    const newDice = parseInt(getVal('gAtkDice')) || oldAtk.dice;
+    const newCount = parseInt(getVal('gAtkCount')) || oldAtk.count;
+    const newCost = parseInt(getVal('gAtkCost')) || 0;
+    const newCostType = getVal('gAtkCostType') || oldAtk.costType;
+    if (newDice !== oldAtk.dice || newCount !== oldAtk.count || newCost !== oldAtk.cost || newCostType !== oldAtk.costType) {
+      attackChanges = { old: oldAtk, new: { dice: newDice, count: newCount, cost: newCost, costType: newCostType } };
+    }
+    skill.attackDice = parseInt(getVal('gAtkDice')) || skill.attackDice;
+    skill.attackCount = parseInt(getVal('gAtkCount')) || skill.attackCount;
+    skill.attackCost = parseInt(getVal('gAtkCost')) || 0;
+    skill.attackCostType = getVal('gAtkCostType') || skill.attackCostType;
+  }
+  skill.name = newName;
+  skill.detail = getVal('gDetail');
   skill.desc = getVal('gDesc');
+  if (!skill.growthHistory) skill.growthHistory = [];
+  skill.growthHistory.push({ previousName, newName, date: new Date().toLocaleDateString(), notes: getVal('gNotes'), attackChanges });
+  if (!ch.growthLog) ch.growthLog = [];
+  ch.growthLog.push({
+    skillId: id,
+    skillName: newName,
+    previousName: previousName !== newName ? previousName : null,
+    date: new Date().toLocaleString(),
+    notes: getVal('gNotes'),
+    newDetail: getVal('gDetail'),
+    type: 'growth',
+    attackChanges,
+  });
   renderSkillList(listKey);
   renderGrowthLog();
   closeModal();
+  scheduleAutoSave();
+}
+
+function findSkillById(ch, skillId) {
+  for (const lk of ['titles','raceSkills','classSkills','profSkills']) {
+    const s = (ch[lk]||[]).find(function(s){ return s.id === skillId; });
+    if (s) return s;
+  }
+  return null;
+}
+
+function _buildGrowthEventDiv(ev) {
+  const typeTag = ev.type === 'new'
+    ? '<span style="font-size:0.62rem;background:var(--green2);color:#fff;padding:1px 6px;border-radius:8px;margin-right:6px">New</span>'
+    : '<span style="font-size:0.62rem;background:var(--blue2);color:#fff;padding:1px 6px;border-radius:8px;margin-right:6px">Growth</span>';
+  const renameNote = ev.previousName
+    ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:3px">Renamed: <em>${escHtml(ev.previousName)}</em> → <strong>${escHtml(ev.skillName)}</strong></div>`
+    : '';
+  let atkDiff = '';
+  if (ev.attackChanges) {
+    const o = ev.attackChanges.old, n = ev.attackChanges.new;
+    const parts = [];
+    if (o.dice !== n.dice) parts.push(`Dice: d${o.dice} → d${n.dice}`);
+    if (o.count !== n.count) parts.push(`Count: ${o.count} → ${n.count}`);
+    const costLabel = function(c, t) { return t === 'none' ? 'None' : c + t.toUpperCase(); };
+    if (o.cost !== n.cost || o.costType !== n.costType) parts.push(`Cost: ${costLabel(o.cost,o.costType)} → ${costLabel(n.cost,n.costType)}`);
+    if (parts.length) atkDiff = `<div style="font-size:0.72rem;color:var(--accent);margin-top:4px;display:flex;flex-wrap:wrap;gap:6px">${parts.map(p=>`<span style="background:var(--theme-bg);border:1px solid var(--accent-dim);border-radius:4px;padding:1px 6px">${escHtml(p)}</span>`).join('')}</div>`;
+  }
+  const d = document.createElement('div');
+  d.className = 'growth-event';
+  d.style.cssText = 'margin:6px 0;border-left:2px solid var(--border);padding-left:10px;padding-top:4px;padding-bottom:4px';
+  d.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
+      <span>${typeTag}<span class="growth-event-date" style="margin-left:0">${ev.date}</span></span>
+    </div>
+    ${ev.notes ? `<div style="font-size:0.82rem;color:var(--text2);margin-top:3px"><em>${escHtml(ev.notes)}</em></div>` : ''}
+    ${ev.newDetail ? `<div style="font-size:0.78rem;color:var(--text3);margin-top:2px">${escHtml(ev.newDetail)}</div>` : ''}
+    ${renameNote}${atkDiff}`;
+  return d;
 }
 
 function renderGrowthLog() {
   const ch = characters[activeCharIdx];
   const el = document.getElementById('growthHistory');
   if (!el) return;
-  if (ch.growthLog.length===0) { el.innerHTML='<div style="color:var(--text3);font-size:0.83rem">Growth events will appear here.</div>'; return; }
-  el.innerHTML='';
-  ch.growthLog.slice().reverse().forEach(ev=>{
-    const d=document.createElement('div');
-    d.className='growth-event';
-    const renameNote = ev.previousName && ev.previousName !== ev.skillName
-      ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:2px">Renamed from <em>${escHtml(ev.previousName)}</em></div>`
-      : '';
-    const typeTag = ev.type === 'new'
-      ? '<span style="font-size:0.65rem;background:var(--green2);color:#fff;padding:1px 5px;border-radius:8px;margin-left:6px">New</span>'
-      : ev.type === 'growth'
-      ? '<span style="font-size:0.65rem;background:var(--blue2);color:#fff;padding:1px 5px;border-radius:8px;margin-left:6px">Growth</span>'
-      : '';
-    d.innerHTML=`<div class="growth-event-header"><span class="growth-event-name">[${escHtml(ev.skillName)}]${typeTag}</span><span class="growth-event-date">${ev.date}</span></div><div style="font-size:0.83rem;color:var(--text2);margin-top:3px">${ev.notes?`<em>${escHtml(ev.notes)}</em><br/>`:''}${escHtml(ev.newDetail)||'—'}${renameNote}</div>`;
-    el.appendChild(d);
+  if (!ch.growthLog || ch.growthLog.length === 0) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:0.83rem">Growth events will appear here.</div>';
+    return;
+  }
+  el.innerHTML = '';
+
+  // Partition: events with skillId go into groups, legacy events (no skillId) go flat
+  const groups = new Map(); // skillId → { events: [], rootName: string, lastDate: string }
+  const legacyEvents = [];
+  ch.growthLog.forEach(function(ev) {
+    if (ev.skillId) {
+      if (!groups.has(ev.skillId)) {
+        groups.set(ev.skillId, { events: [], rootName: ev.rootSkillName || ev.skillName, lastDate: ev.date });
+      }
+      const g = groups.get(ev.skillId);
+      g.events.push(ev);
+      g.lastDate = ev.date; // last event date
+    } else {
+      legacyEvents.push(ev);
+    }
   });
+
+  // Sort groups by last event date descending (most recent first)
+  const sortedGroups = Array.from(groups.entries()).sort(function(a, b) {
+    return new Date(b[1].lastDate) - new Date(a[1].lastDate);
+  });
+
+  sortedGroups.forEach(function(entry) {
+    const skillId = entry[0], group = entry[1];
+    const currentSkill = findSkillById(ch, skillId);
+    const displayName = currentSkill ? currentSkill.name : (group.events[group.events.length - 1].skillName);
+    const rootName = group.rootName;
+
+    const container = document.createElement('div');
+    container.style.cssText = 'border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden';
+
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);cursor:pointer;user-select:none';
+    const rootNote = (rootName && rootName !== displayName) ? `<span style="font-size:0.68rem;color:var(--text3);margin-left:8px">was: ${escHtml(rootName)}</span>` : '';
+    const countBadge = `<span style="font-size:0.62rem;color:var(--text3);margin-left:8px">${group.events.length} event${group.events.length !== 1 ? 's' : ''}</span>`;
+    hdr.innerHTML = `
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0">
+        <span class="growth-event-name" style="font-size:0.82rem">[${escHtml(displayName)}]</span>${rootNote}${countBadge}
+      </div>
+      <span style="font-size:0.75rem;color:var(--text3)">▾</span>`;
+
+    const body = document.createElement('div');
+    body.style.cssText = 'display:none;padding:8px 12px 10px';
+    group.events.forEach(function(ev) { body.appendChild(_buildGrowthEventDiv(ev)); });
+
+    hdr.addEventListener('click', function() {
+      const isOpen = body.style.display !== 'none';
+      body.style.display = isOpen ? 'none' : 'block';
+      hdr.querySelector('span:last-child').textContent = isOpen ? '▾' : '▴';
+    });
+
+    container.appendChild(hdr);
+    container.appendChild(body);
+    el.appendChild(container);
+  });
+
+  // Legacy events (no skillId) — flat list at bottom
+  if (legacyEvents.length > 0) {
+    const legacyWrap = document.createElement('div');
+    legacyWrap.style.cssText = 'border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;opacity:0.8';
+    const legacyHdr = document.createElement('div');
+    legacyHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);cursor:pointer;user-select:none';
+    legacyHdr.innerHTML = `<span style="font-family:\'Cinzel\',serif;font-size:0.62rem;letter-spacing:0.08em;color:var(--text3)">EARLIER EVENTS (${legacyEvents.length})</span><span style="font-size:0.75rem;color:var(--text3)">▾</span>`;
+    const legacyBody = document.createElement('div');
+    legacyBody.style.cssText = 'display:none;padding:8px 12px 10px';
+    legacyEvents.slice().reverse().forEach(function(ev) { legacyBody.appendChild(_buildGrowthEventDiv(ev)); });
+    legacyHdr.addEventListener('click', function() {
+      const isOpen = legacyBody.style.display !== 'none';
+      legacyBody.style.display = isOpen ? 'none' : 'block';
+      legacyHdr.querySelector('span:last-child').textContent = isOpen ? '▾' : '▴';
+    });
+    legacyWrap.appendChild(legacyHdr);
+    legacyWrap.appendChild(legacyBody);
+    el.appendChild(legacyWrap);
+  }
 }
 
 // ================================================================
@@ -3629,6 +3794,48 @@ function selectSystemSkill(skillId, tier, checked) {
         attackCostType: sk.attackCostType || 'none',
       });
     }
+
+    // If this is a Growth skill, prompt whether it evolves an existing skill
+    if (sk.isGrowth) {
+      const allGrowthSkills = [];
+      ['titles','raceSkills','classSkills','profSkills'].forEach(function(lk) {
+        (ch[lk]||[]).forEach(function(s) {
+          if (s.isGrowth && s.id !== sk.id) allGrowthSkills.push({ skill: s, listKey: lk });
+        });
+      });
+      if (allGrowthSkills.length > 0) {
+        _growthPickerData = {
+          bankIdx: null, charIdx: activeCharIdx,
+          skillRefs: allGrowthSkills.map(function(e) { return { id: e.skill.id, listKey: e.listKey, name: e.skill.name }; }),
+          newSkillId: sk.id, newSkillDesc: sk.desc || '', newSkillName: sk.name, newSkillTier: tier,
+        };
+        renderSystemSkills();
+        renderSkillList('classSkills');
+        renderAllTabs();
+        scheduleAutoSave();
+        openModal('Growth Skill Selected \u2014 ' + escHtml(sk.name), `
+          <div style="font-size:0.83rem;color:var(--text2);margin-bottom:14px">
+            <strong>${escHtml(sk.name)}</strong> is a Growth Skill.<br/>
+            Is this a brand new skill, or is it a growth stage of an existing skill?
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="option-card" onclick="closeModal()" style="cursor:pointer">
+              <div class="option-card-title">New Growth Skill</div>
+              <div class="option-card-desc">Add <strong>${escHtml(sk.name)}</strong> as a fresh skill entry in Class Skills.</div>
+            </div>
+            <div class="option-card" onclick="closeModal();openSysSkillGrowthPicker()" style="cursor:pointer">
+              <div class="option-card-title">Growth of Existing Skill</div>
+              <div class="option-card-desc">This evolves a skill the character already has. The existing skill will be updated \u2014 <strong>${escHtml(sk.name)}</strong> won\u2019t be added as a separate entry.</div>
+            </div>
+          </div>
+        `);
+        return; // Rendering and saving already done above
+      } else {
+        // No existing growth skills — log as new
+        if (!ch.growthLog) ch.growthLog = [];
+        ch.growthLog.push({ skillName: sk.name, previousName: null, date: new Date().toLocaleDateString(), notes: '', newDetail: sk.desc||'', type: 'new' });
+      }
+    }
   } else {
     // Uncheck — clear selection and remove from class skills
     ch.selectedSystemSkills = ch.selectedSystemSkills.filter(function(s) {
@@ -3638,6 +3845,90 @@ function selectSystemSkill(skillId, tier, checked) {
   }
   renderSystemSkills();
   renderSkillList('classSkills');
+  renderAllTabs();
+  scheduleAutoSave();
+}
+
+function openSysSkillGrowthPicker() {
+  const { skillRefs, newSkillName } = _growthPickerData;
+  const options = skillRefs.map(function(ref, i) {
+    return '<option value="' + i + '">' + escHtml(ref.name) + ' (' + ref.listKey + ')</option>';
+  }).join('');
+  openModal('Grow Existing Skill \u2014 ' + escHtml(newSkillName), `
+    <div style="font-size:0.83rem;color:var(--text2);margin-bottom:12px">
+      Select the existing Growth Skill this is an evolution of, then update the name if needed.
+    </div>
+    <div class="form-field" style="margin-bottom:10px">
+      <label class="form-label">Existing Growth Skill</label>
+      <select class="form-select" id="ssgExistingSelect" onchange="updateSsgNamePreview(this.value)">${options}</select>
+    </div>
+    <div class="form-field" style="margin-bottom:10px">
+      <label class="form-label">Updated Skill Name (can rename on growth)</label>
+      <input class="form-input" id="ssgNewName" value="${escHtml(newSkillName)}" placeholder="New name after growth\u2026"/>
+    </div>
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-label">Growth Notes (optional)</label>
+      <textarea class="form-textarea" id="ssgNotes" style="min-height:60px" placeholder="e.g. Evolved to Superior rank. Range extended to 50ft."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" style="flex:2" onclick="applySystemSkillGrowth()">Apply Growth</button>
+    </div>
+  `);
+}
+
+function updateSsgNamePreview(selectedIdx) {
+  const nameEl = document.getElementById('ssgNewName');
+  const ref = _growthPickerData.skillRefs[parseInt(selectedIdx)];
+  if (nameEl && ref) nameEl.value = ref.name;
+}
+
+function applySystemSkillGrowth() {
+  const { charIdx, skillRefs, newSkillId, newSkillDesc, newSkillName, newSkillTier } = _growthPickerData;
+  const ch = characters[charIdx];
+  const selectEl = document.getElementById('ssgExistingSelect');
+  const nameEl = document.getElementById('ssgNewName');
+  const notesEl = document.getElementById('ssgNotes');
+  if (!selectEl || !nameEl) return;
+  const selectedIdx = parseInt(selectEl.value);
+  const ref = skillRefs[selectedIdx];
+  if (!ref) return;
+  const newName = nameEl.value.trim() || newSkillName;
+  const notes = notesEl ? notesEl.value.trim() : '';
+
+  // Update the existing growth skill in place
+  const skillList = ch[ref.listKey] || [];
+  const skill = skillList.find(function(s) { return s.id === ref.id; });
+  if (!skill) { alert('Skill not found \u2014 it may have been removed.'); return; }
+  const previousName = skill.name;
+  skill.name = newName;
+  skill.detail = newSkillDesc || skill.detail;
+  skill.desc = newSkillDesc || skill.desc;
+  if (!skill.growthHistory) skill.growthHistory = [];
+  skill.growthHistory.push({ previousName, newName, date: new Date().toLocaleDateString(), notes });
+
+  // Log to growth log
+  if (!ch.growthLog) ch.growthLog = [];
+  ch.growthLog.push({
+    skillId: ref.id,
+    rootSkillName: previousName,
+    skillName: newName,
+    previousName: previousName !== newName ? previousName : null,
+    date: new Date().toLocaleDateString(),
+    notes,
+    newDetail: newSkillDesc || '',
+    type: 'growth',
+  });
+
+  // Remove the system skill entry from classSkills and selectedSystemSkills (it replaced the existing skill)
+  ch.classSkills = ch.classSkills.filter(function(s) { return s.id !== newSkillId; });
+  ch.selectedSystemSkills = ch.selectedSystemSkills.filter(function(s) { return s.id !== newSkillId; });
+
+  closeModal();
+  showSaveStatus('\u2713 "' + previousName + '" grew into "' + newName + '"!', true);
+  renderSystemSkills();
+  renderSkillList('classSkills');
+  renderGrowthLog();
   renderAllTabs();
   scheduleAutoSave();
 }
@@ -3724,7 +4015,7 @@ function renderWeapons() {
     if(w.isDefensive) tags.push('<span class="skill-tag" style="background:#0a1a2e;color:#6aaee8;border:1px solid #4a8fc4">Defensive</span>');
     if(w.isGrowth) tags.push('<span class="skill-tag tag-growth">Growth</span>');
     if(w.isSoulBound) tags.push('<span class="skill-tag tag-soulbound">Soul Bound</span>');
-    const atkBtns = w.isAttack ? `<button class="to-hit-btn" onclick="rollToHit('${escHtml(w.name)}')">To Hit</button><button class="attack-btn" onclick="rollWeaponAttack(${w.id})">Roll DMG</button>` : '';
+    const atkBtns = w.isAttack ? `<button class="to-hit-btn" onclick="rollToHit(${w.id},'weapons')">To Hit</button><button class="attack-btn" onclick="rollWeaponAttack(${w.id})">Roll DMG</button>` : '';
     // Build AC display for defensive items
     let acLine = '';
     if (w.isDefensive) {
@@ -3857,8 +4148,10 @@ function rollWeaponAttack(id) {
   for(let i=0;i<(w.attackCount||1);i++){const r=Math.ceil(Math.random()*(w.attackDice||20));rolls.push(r);total+=r;}
   let bonus=0;
   if(w.attackStat&&ch.stats[w.attackStat]){bonus=getMod(w.attackStat,ch);total+=bonus;}
-  if(w.attackCostType==='mp'&&w.attackCost>0){ch.mpCurrent=Math.max(0,ch.mpCurrent-w.attackCost);document.getElementById('mpCurrent').value=ch.mpCurrent;updateBar('mp');}
-  addLog(`[${w.name}] DMG`,`${rolls.join('+')}${bonus?` + ${STAT_ABBR[w.attackStat]}(${bonus>=0?'+'+bonus:bonus})`:''}`,total,rolls[0]);
+  const wDiceLabel = `d${w.attackDice||20}`;
+  const wRollStr = rolls.map(function(r){ return r + '(' + wDiceLabel + ')'; }).join('+');
+  const wBonusStr = bonus ? '+' + STAT_ABBR[w.attackStat] + '(' + (bonus>=0?'+'+bonus:bonus) + ')' : '';
+  addLog(`[${w.name}] DMG`, wRollStr + wBonusStr + '=', total, rolls[0]);
 }
 
 // ================================================================
@@ -3871,17 +4164,20 @@ function renderGeneral() {
   tbody.innerHTML='';
   ch.general.forEach(g=>{
     const tr=document.createElement('tr');
+    tr.draggable = true;
     tr.innerHTML=`
+      <td style="padding:3px 2px;border-bottom:1px solid var(--border);cursor:grab;color:var(--text3);font-size:0.9rem;text-align:center;width:18px" title="Drag to reorder" class="drag-handle">⠿</td>
       <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.item)}" onchange="upGen(${g.id},'item',this.value)"/></td>
       <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.qty||'')}" onchange="upGen(${g.id},'qty',this.value)" style="width:60px"/></td>
       <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><input class="resource-input" value="${escHtml(g.notes||'')}" onchange="upGen(${g.id},'notes',this.value)"/></td>
       <td style="padding:3px 5px;border-bottom:1px solid var(--border)"><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem" onclick="removeGen(${g.id})">✕</button></td>`;
     tbody.appendChild(tr);
   });
+  makeDraggable(tbody, 'general', renderGeneral);
 }
-function upGen(id,f,v){const ch=characters[activeCharIdx];const g=ch.general.find(x=>x.id===id);if(g)g[f]=v;}
-function removeGen(id){const ch=characters[activeCharIdx];ch.general=ch.general.filter(x=>x.id!==id);renderGeneral();}
-function addGeneralRow(){const ch=characters[activeCharIdx];ch.general.push({id:ch.nextId++,item:'',qty:'',notes:''});renderGeneral();}
+function upGen(id,f,v){const ch=characters[activeCharIdx];const g=ch.general.find(x=>x.id===id);if(g){g[f]=v;scheduleAutoSave();}}
+function removeGen(id){const ch=characters[activeCharIdx];ch.general=ch.general.filter(x=>x.id!==id);renderGeneral();scheduleAutoSave();}
+function addGeneralRow(){const ch=characters[activeCharIdx];ch.general.push({id:ch.nextId++,item:'',qty:'',notes:''});renderGeneral();scheduleAutoSave();}
 
 // ================================================================
 // SOUL BOUND
@@ -3915,14 +4211,28 @@ function rollSkillAttack(id, listKey) {
   for(let i=0;i<(skill.attackCount||1);i++){const r=Math.ceil(Math.random()*(skill.attackDice||20));rolls.push(r);total+=r;}
   let bonus=0;
   if(skill.attackStat&&ch.stats[skill.attackStat]){bonus=getMod(skill.attackStat,ch);total+=bonus;}
-  if(skill.attackCostType==='mp'&&skill.attackCost>0){ch.mpCurrent=Math.max(0,ch.mpCurrent-skill.attackCost);document.getElementById('mpCurrent').value=ch.mpCurrent;updateBar('mp');}
-  if(skill.attackCostType==='hp'&&skill.attackCost>0){ch.hpCurrent=Math.max(0,ch.hpCurrent-skill.attackCost);document.getElementById('hpCurrent').value=ch.hpCurrent;updateBar('hp');}
-  addLog(`[${skill.name}] DMG`,`${rolls.join('+')}${bonus?` + ${STAT_ABBR[skill.attackStat]}(${bonus>=0?'+':bonus}${bonus})`:''}`,total,rolls[0]);
+  const skDiceLabel = `d${skill.attackDice||20}`;
+  const skRollStr = rolls.map(function(r){ return r + '(' + skDiceLabel + ')'; }).join('+');
+  const skBonusStr = bonus ? '+' + STAT_ABBR[skill.attackStat] + '(' + (bonus>=0?'+'+bonus:bonus) + ')' : '';
+  addLog(`[${skill.name}] DMG`, skRollStr + skBonusStr + '=', total, rolls[0]);
 }
 
-function rollToHit(name) {
-  const roll=Math.ceil(Math.random()*100);
-  addLog(`[${name}] To Hit`,`Rolled `,roll,roll);
+function rollToHit(id, listKey) {
+  const ch = characters[activeCharIdx];
+  const skill = (listKey && ch[listKey]) ? ch[listKey].find(function(s) { return s.id === id; }) : null;
+  const name = skill ? skill.name : String(id);
+  if (skill && skill.attackCostType === 'mp' && skill.attackCost > 0) {
+    ch.mpCurrent = Math.max(0, ch.mpCurrent - skill.attackCost);
+    document.getElementById('mpCurrent').value = ch.mpCurrent;
+    updateBar('mp');
+  }
+  if (skill && skill.attackCostType === 'hp' && skill.attackCost > 0) {
+    ch.hpCurrent = Math.max(0, ch.hpCurrent - skill.attackCost);
+    document.getElementById('hpCurrent').value = ch.hpCurrent;
+    updateBar('hp');
+  }
+  const roll = Math.ceil(Math.random() * 100);
+  addLog(`[${name}] To Hit`, `${roll}(d100)=`, roll, roll);
 }
 
 // ================================================================
@@ -4016,12 +4326,14 @@ function joinRoom(roomId, isCreator) {
     const savedActiveIdx = activeCharIdx;
     const savedIsDMView  = isDMView;
     try {
+      const savedScroll = window.pageYOffset;
       applyLoadedState(JSON.parse(val.payload));
       activeCharIdx = Math.min(savedActiveIdx, characters.length - 1);
       isDMView = savedIsDMView;
       characters.forEach(function(ch) { recalcVitals(ch); });
       renderAllTabs();
       renderSheet();
+      if (savedScroll > 0) requestAnimationFrame(function() { window.scrollTo(0, savedScroll); });
     } catch(e) { console.warn('Firebase character sync error:', e); }
     _receivingRemoteUpdate = false;
   });
@@ -6411,6 +6723,8 @@ function confirmNewGrowthSkill(bankIdx, charIdx) {
   });
   if (!ch.growthLog) ch.growthLog = [];
   ch.growthLog.push({
+    skillId: skillId,
+    rootSkillName: item.name,
     skillName: item.name,
     previousName: null,
     date: new Date().toLocaleDateString(),
@@ -6506,6 +6820,20 @@ function applyGrowthToExisting() {
   const skill = skillList.find(function(s) { return s.id === ref.id; });
   if (!skill) { alert('Skill not found — it may have been removed.'); return; }
   const previousName = skill.name;
+  // Capture attack changes from bank item vs current skill
+  let attackChanges = null;
+  if (skill.isAttack && (item.attackDice || item.attackCost !== undefined || item.attackCount)) {
+    const oldAtk = { dice: skill.attackDice||20, count: skill.attackCount||1, cost: skill.attackCost||0, costType: skill.attackCostType||'none' };
+    const newAtkDice = item.attackDice || oldAtk.dice;
+    const newAtkCount = item.attackCount || oldAtk.count;
+    const newAtkCost = item.attackCost !== undefined ? item.attackCost : oldAtk.cost;
+    const newAtkCostType = item.attackCostType || oldAtk.costType;
+    if (newAtkDice !== oldAtk.dice || newAtkCount !== oldAtk.count || newAtkCost !== oldAtk.cost || newAtkCostType !== oldAtk.costType) {
+      attackChanges = { old: oldAtk, new: { dice: newAtkDice, count: newAtkCount, cost: newAtkCost, costType: newAtkCostType } };
+      skill.attackDice = newAtkDice; skill.attackCount = newAtkCount;
+      skill.attackCost = newAtkCost; skill.attackCostType = newAtkCostType;
+    }
+  }
   skill.name = newName;
   skill.detail = item.detail || skill.detail;
   skill.desc = item.desc || skill.desc;
@@ -6517,16 +6845,20 @@ function applyGrowthToExisting() {
     newName: newName,
     date: new Date().toLocaleDateString(),
     notes: notes,
+    attackChanges,
   });
   // Add to growth log
   if (!ch.growthLog) ch.growthLog = [];
   ch.growthLog.push({
+    skillId: ref.id,
+    rootSkillName: previousName,
     skillName: newName,
     previousName: previousName !== newName ? previousName : null,
     date: new Date().toLocaleDateString(),
     notes: notes,
     newDetail: item.detail || '',
     type: 'growth',
+    attackChanges,
   });
   // Mark bank item as granted
   if (!item.grantedTo) item.grantedTo = [];
